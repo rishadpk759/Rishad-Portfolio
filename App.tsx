@@ -1,33 +1,42 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { DataProvider } from './context';
-import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout } from './pages';
+import { DataProvider, useData } from './context';
+import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout, AdminPortfolioEditor, AdminBlogEditor } from './pages';
 
 const App: React.FC = () => {
-    // Effect to handle the pre-loading screen
-    useEffect(() => {
-        const loader = document.getElementById('loader');
-        if (loader) {
-            // Set a minimum time for the loader to be visible
-            const timer = setTimeout(() => {
-                loader.classList.add('loader-hidden');
-                // Set display to none after the fade-out transition is complete
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 500); // This duration should match the transition duration in CSS
-            }, 2500); // Minimum 2.5 seconds display time
-
-            return () => clearTimeout(timer);
-        }
-    }, []);
-
     return (
         <DataProvider>
             <HashRouter>
-                <AppRoutes />
+                <AppContent />
             </HashRouter>
         </DataProvider>
     );
+};
+
+const AppContent: React.FC = () => {
+    const { settings } = useData();
+
+    // Effect to handle the pre-loading screen and dynamic title
+    useEffect(() => {
+        document.title = settings.siteTitle;
+        const loader = document.getElementById('loader');
+        const loaderName = document.querySelector('#loader .loader-name');
+        if (loaderName) {
+            loaderName.textContent = settings.heroName;
+        }
+
+        if (loader) {
+            const timer = setTimeout(() => {
+                loader.classList.add('loader-hidden');
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500);
+            }, 2500);
+            return () => clearTimeout(timer);
+        }
+    }, [settings]);
+
+    return <AppRoutes />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -52,7 +61,11 @@ const AppRoutes: React.FC = () => {
                 <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminDashboardPage />} />
                     <Route path="portfolio" element={<AdminPortfolioManager />} />
+                    <Route path="portfolio/add" element={<AdminPortfolioEditor />} />
+                    <Route path="portfolio/edit/:id" element={<AdminPortfolioEditor />} />
                     <Route path="blog" element={<AdminBlogManager />} />
+                    <Route path="blog/add" element={<AdminBlogEditor />} />
+                    <Route path="blog/edit/:id" element={<AdminBlogEditor />} />
                     <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>
             </Routes>

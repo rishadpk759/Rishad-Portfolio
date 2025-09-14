@@ -20,9 +20,13 @@ export interface BlogPost {
     excerpt: string;
     content: string;
     imageUrl: string;
+    views: number;
 }
 
 export interface SiteSettings {
+    siteTitle: string;
+    heroName: string;
+    heroImage: string;
     about: {
         bio: string;
         photo: string;

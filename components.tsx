@@ -39,15 +39,13 @@ export const AnimatedText: React.FC<{ text: string, className?: string, progress
     return (
         <h2 className={`${className} animated-text-reveal`} aria-label={text}>
             {words.map((word, wordIndex) => {
-                // Append a space to each word except the last one.
                 const wordWithSpace = word + (wordIndex < words.length - 1 ? ' ' : '');
                 return (
-                    // Use a span for each word+space group. `white-space: pre` is key to rendering the trailing space.
                     <span key={wordIndex} style={{ display: 'inline-block', whiteSpace: 'pre' }}>
                         {wordWithSpace.split('').map((char, charInWordIndex) => {
                             const isRevealed = charIndex < revealedCount;
                             const color = isRevealed ? '#000000' : '#9ca3af';
-                            charIndex++; // Increment index for each character, including spaces.
+                            charIndex++;
                             return (
                                 <span key={charInWordIndex} style={{ color }}>
                                     {char}
@@ -68,17 +66,17 @@ export const BottomNavBar: React.FC = () => {
     const location = useLocation();
     const isHomePage = location.pathname === '/';
     
-    // Define the sections for scroll-spying on the homepage
     const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section'];
     
     const activeSection = useScrollSpy(isHomePage ? sectionIds : [], { 
-        threshold: 0.3 // Trigger when 30% of a section is visible
+        threshold: 0.3
     });
 
     const links = [
         { name: 'Home', path: '/', sectionId: 'home-section-spacer' },
         { name: 'About', path: '/about', sectionId: 'about-section' },
         { name: 'Work', path: '/portfolio', sectionId: 'work-section' },
+        { name: 'Blog', path: '/blog' },
         { name: 'Service', path: '/#services-section', sectionId: 'services-section' },
         { name: 'Contact', path: '/contact' },
     ];
@@ -86,7 +84,6 @@ export const BottomNavBar: React.FC = () => {
     return (
         <nav className="bottom-nav-container animate-fadeIn">
             {links.map((link) => {
-                // On the homepage, links with a `sectionId` are treated as smooth-scroll links.
                 if (isHomePage && link.sectionId) {
                     const isActive = activeSection === link.sectionId;
                     return (
@@ -103,8 +100,6 @@ export const BottomNavBar: React.FC = () => {
                         </a>
                     );
                 } 
-                
-                // On all other pages, or for links without a `sectionId` (like Contact), we use NavLink for routing.
                 else {
                     return (
                          <NavLink
@@ -137,12 +132,18 @@ export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
 );
 
 export const BlogCard: React.FC<{ post: BlogPost }> = ({ post }) => (
-    <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg p-6 transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-1">
-        <h3 className="font-sans text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
-        <p className="text-xs text-gray-500 mt-1">{post.date} by {post.author}</p>
-        <p className="text-gray-400 mt-4">{post.excerpt}</p>
-        <div className="flex items-center mt-6 text-brand-cyan text-sm font-semibold">
-            Read More →
+    <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-1">
+        <div className="w-full h-48 rounded-t-lg overflow-hidden">
+             <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        </div>
+        <div className="p-6">
+            <h3 className="font-sans text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
+            <div className="blog-meta mt-2">
+                <span>{post.date}</span>
+                <div className="blog-meta-dot"></div>
+                <span>{post.views.toLocaleString()} Views</span>
+            </div>
+            <p className="text-gray-400 mt-4">{post.excerpt}</p>
         </div>
     </NavLink>
 );
@@ -174,59 +175,36 @@ export const CreativeImageFrame: React.FC<{ imageUrl: string }> = ({ imageUrl })
 
 
 export const AdminSidebar: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
-    <div className="w-64 bg-dark-card border-r border-dark-border flex flex-col p-4">
-        <h1 className="font-sans text-2xl font-bold tracking-widest text-white text-center py-4">AURA_ADMIN</h1>
+    <div className="w-64 admin-sidebar-light flex flex-col p-4 flex-shrink-0">
+        <h1 className="admin-sidebar-title text-xl font-bold tracking-widest text-center py-4">ADMIN PANEL</h1>
         <nav className="flex-grow mt-8 space-y-2">
             <AdminNavLink to="/admin">Dashboard</AdminNavLink>
             <AdminNavLink to="/admin/portfolio">Portfolio</AdminNavLink>
             <AdminNavLink to="/admin/blog">Blog</AdminNavLink>
             <AdminNavLink to="/admin/settings">Settings</AdminNavLink>
         </nav>
-        <button onClick={onLogout} className="w-full text-left p-3 rounded-md text-gray-400 hover:bg-brand-purple/20 hover:text-white transition-colors duration-200">
+        <button onClick={onLogout} className="w-full text-left p-3 rounded-md admin-logout-btn">
             Logout
         </button>
     </div>
 );
 
 const AdminNavLink: React.FC<{ to: string; children: React.ReactNode }> = ({ to, children }) => {
-    const navLinkClasses = "block p-3 rounded-md text-gray-400 hover:bg-brand-cyan/20 hover:text-white transition-colors duration-200";
-    const activeLinkClasses = "bg-brand-cyan/20 text-white shadow-inner shadow-brand-cyan/20";
     return (
-        <NavLink to={to} end className={({ isActive }) => `${navLinkClasses} ${isActive ? activeLinkClasses : ''}`}>
+        <NavLink 
+            to={to} 
+            end 
+            className={({ isActive }) => `block p-3 rounded-md admin-nav-link ${isActive ? 'active' : ''}`}
+        >
             {children}
         </NavLink>
     );
 };
 
-export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
-    <input {...props} className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 transition-colors duration-300 text-white" />
-);
-
-export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>> = (props) => (
-    <textarea {...props} className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 transition-colors duration-300 text-white" />
-);
-
-export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger', size?: 'sm' | 'md' }> = ({ children, variant = 'primary', size = 'md', ...props }) => {
-    const baseClasses = "rounded-md font-semibold transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed";
-    const variants = {
-        primary: 'bg-brand-cyan/20 border border-brand-cyan text-brand-cyan hover:bg-brand-cyan hover:text-dark-bg',
-        secondary: 'bg-gray-700 hover:bg-gray-600 text-white',
-        danger: 'bg-red-500/20 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white',
-    };
-    const sizes = {
-        sm: 'px-3 py-1 text-sm',
-        md: 'px-4 py-2',
-    };
-    return (
-        <button {...props} className={`${baseClasses} ${variants[variant]} ${sizes[size]}`}>
-            {children}
-        </button>
-    );
-};
 
 export const PageTitle: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
     <div className="mb-8">
-        <h1 className="font-sans text-4xl font-bold text-white">{children}</h1>
-        {subtitle && <p className="text-gray-400 mt-1">{subtitle}</p>}
+        <h1 className="font-sans text-4xl font-bold admin-page-title">{children}</h1>
+        {subtitle && <p className="admin-page-subtitle mt-1">{subtitle}</p>}
     </div>
 );
