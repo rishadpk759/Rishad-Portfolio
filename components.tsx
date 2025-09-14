@@ -69,57 +69,50 @@ export const BottomNavBar: React.FC = () => {
     const isHomePage = location.pathname === '/';
     
     // Define the sections for scroll-spying on the homepage
-    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section', 'contact-section'];
+    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section'];
     
     const activeSection = useScrollSpy(isHomePage ? sectionIds : [], { 
         threshold: 0.3 // Trigger when 30% of a section is visible
     });
 
     const links = [
-        { name: 'Home', sectionId: 'home-section-spacer', path: '/' },
-        { name: 'About', sectionId: 'about-section', path: '/about' },
-        { name: 'Work', sectionId: 'work-section', path: '/portfolio' },
-        { name: 'Service', sectionId: 'services-section', path: '/#services-section' },
-        { name: 'Contact', sectionId: 'contact-section', path: '/#contact-section' },
+        { name: 'Home', path: '/', sectionId: 'home-section-spacer' },
+        { name: 'About', path: '/about', sectionId: 'about-section' },
+        { name: 'Work', path: '/portfolio', sectionId: 'work-section' },
+        { name: 'Service', path: '/#services-section', sectionId: 'services-section' },
+        { name: 'Contact', path: '/contact' },
     ];
     
     return (
         <nav className="bottom-nav-container animate-fadeIn">
-            {links.map(({ name, sectionId, path }) => {
-                // Determine if the link is active
-                const isActive = isHomePage 
-                    // On the homepage, active state is driven by the scroll spy
-                    ? activeSection === sectionId 
-                    // On other pages, active state is driven by the URL path
-                    : (path !== '/' && !path.startsWith('/#') && location.pathname.startsWith(path));
-
-                // On the homepage, we use simple <a> tags with a smooth scroll behavior
-                if (isHomePage) {
+            {links.map((link) => {
+                // On the homepage, links with a `sectionId` are treated as smooth-scroll links.
+                if (isHomePage && link.sectionId) {
+                    const isActive = activeSection === link.sectionId;
                     return (
                         <a
-                            key={name}
-                            href={`#${sectionId}`}
+                            key={link.name}
+                            href={link.path.startsWith('/#') ? `#${link.sectionId}` : link.path}
                             onClick={(e) => {
                                 e.preventDefault();
-                                document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+                                document.getElementById(link.sectionId!)?.scrollIntoView({ behavior: 'smooth' });
                             }}
                             className={`bottom-nav-link ${isActive ? 'active' : ''}`}
                         >
-                            {name}
+                            {link.name}
                         </a>
                     );
                 } 
                 
-                // On other pages, we use NavLink for proper routing
+                // On all other pages, or for links without a `sectionId` (like Contact), we use NavLink for routing.
                 else {
-                    const toPath = path.startsWith('/#') ? `/${path.substring(2)}` : path;
                     return (
                          <NavLink
-                            key={name}
-                            to={toPath}
-                            className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+                            key={link.name}
+                            to={link.path}
+                            className={({ isActive }) => `bottom-nav-link ${isActive ? 'active' : ''}`}
                          >
-                             {name}
+                             {link.name}
                          </NavLink>
                     );
                 }

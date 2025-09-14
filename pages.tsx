@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useData } from './context';
-import { Link, useParams, Outlet, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
 import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, Input, Textarea, Button, AnimatedText, CreativeImageFrame } from './components';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { ProjectCategory } from './types';
@@ -194,38 +194,50 @@ export const HomePage: React.FC = () => {
         const container = servicesContainerRef.current;
         if (!container) return;
         const handleScroll = () => {
+            if (!container) return;
             const containerTop = container.offsetTop;
             const containerHeight = container.offsetHeight;
             const viewportHeight = window.innerHeight;
             const scrollY = window.scrollY;
+
             const stickyStart = containerTop;
             const stickyEnd = containerTop + containerHeight - viewportHeight;
+
             if (scrollY >= stickyStart && scrollY <= stickyEnd) {
                 const scrollInContainer = scrollY - stickyStart;
                 setServiceTextTranslateY(scrollInContainer);
+                
+                // Change the active index when a service is centered in the viewport
                 const index = Math.floor((scrollInContainer + viewportHeight / 2) / viewportHeight);
                 const newActiveIndex = Math.max(0, Math.min(index, SERVICES.length - 1));
-                const invertedIndex = SERVICES.length - 1 - newActiveIndex;
-                setActiveServiceIndex(prevIndex => prevIndex !== invertedIndex ? invertedIndex : prevIndex);
+                
+                if (activeServiceIndex !== newActiveIndex) {
+                    setActiveServiceIndex(newActiveIndex);
+                }
+
             } else if (scrollY < stickyStart) {
                 setServiceTextTranslateY(0);
-                setActiveServiceIndex(SERVICES.length - 1);
+                setActiveServiceIndex(0);
             } else {
                 setServiceTextTranslateY(containerHeight - viewportHeight);
-                setActiveServiceIndex(0);
+                setActiveServiceIndex(SERVICES.length - 1);
             }
         };
+        
         const timeoutId = setTimeout(() => {
             handleScroll();
             window.addEventListener('scroll', handleScroll, { passive: true });
         }, 100);
+
         const resizeHandler = () => handleScroll();
         window.addEventListener('resize', resizeHandler);
+
         return () => {
             clearTimeout(timeoutId);
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', resizeHandler);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
@@ -311,7 +323,7 @@ export const HomePage: React.FC = () => {
                     <div ref={servicesContainerRef} className="services-container">
                         <div className="services-sticky-wrapper">
                             <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                <div className="h-full overflow-hidden">
+                                <div>
                                     <div style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
                                         {SERVICES.map((service, index) => (
                                             <div key={index} data-index={index} className="service-text-item">
@@ -352,12 +364,12 @@ export const HomePage: React.FC = () => {
                 </section>
 
                 <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-hidden">
-                    <a href={`mailto:${settings.contact.email}`} className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
+                    <Link to="/contact" className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
                         <h2 className="hero-text-bg whitespace-normal" dangerouslySetInnerHTML={{ __html: 'FUEL ME WITH <br /> COFFEE' }} />
                         <p className="font-sans text-xl md:text-3xl text-gray-400 mt-8">
                             And I’ll fuel your brand with design.
                         </p>
-                    </a>
+                    </Link>
                 </section>
             </div>
         </div>
@@ -524,7 +536,7 @@ export const ProjectDetailPage: React.FC = () => {
                         <br />
                         Just say hi, and let’s get started.
                     </h2>
-                    <Link to="/#contact-section" className="project-cta-button inline-block">
+                    <Link to="/contact" className="project-cta-button inline-block">
                         Contact Now
                     </Link>
                 </div>
@@ -624,6 +636,94 @@ export const AboutPage: React.FC = () => {
 
             <div className="h-32" />
         </>
+    );
+};
+
+export const ContactPage: React.FC = () => {
+    const { settings } = useData();
+    const [toastMessage, setToastMessage] = useState('');
+    const [showToast, setShowToast] = useState(false);
+    
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        message: ''
+    });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Here you would typically send the form data to a backend
+        console.log('Form submitted:', formData);
+        triggerToast("Thanks for your message! I'll be in touch.");
+        setFormData({ name: '', email: '', phone: '', message: '' });
+    };
+
+    const triggerToast = (message: string) => {
+        setToastMessage(message);
+        setShowToast(true);
+        setTimeout(() => {
+            setShowToast(false);
+        }, 3000);
+    };
+
+    const handleSocialClick = (platform: 'instagram' | 'facebook') => {
+        const messages = {
+            instagram: "Rishad is currently off the grid on Instagram, focusing on creating.",
+            facebook: "Rishad prefers real connections over Facebook's algorithms."
+        };
+        triggerToast(messages[platform]);
+    };
+
+    return (
+        <div className="contact-page-light">
+            <div className="container mx-auto px-6 py-12 pt-20 min-h-screen animate-fadeIn">
+                <div className="max-w-2xl mx-auto text-center">
+                    <h1 className="font-sans text-5xl font-bold text-black">Get in Touch</h1>
+                    <p className="text-gray-600 mt-4 text-lg">Have a project in mind or just want to say hello? Drop me a line.</p>
+                </div>
+
+                <div className="max-w-2xl mx-auto mt-12">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <input name="name" type="text" placeholder="Your Name *" value={formData.name} onChange={handleInputChange} required className="w-full form-input-light rounded-md px-4 py-3" />
+                        <input name="email" type="email" placeholder="Your Email *" value={formData.email} onChange={handleInputChange} required className="w-full form-input-light rounded-md px-4 py-3" />
+                        <input name="phone" type="tel" placeholder="Your Phone (Optional)" value={formData.phone} onChange={handleInputChange} className="w-full form-input-light rounded-md px-4 py-3" />
+                        <textarea name="message" placeholder="Your Message *" rows={6} value={formData.message} onChange={handleInputChange} required className="w-full form-input-light rounded-md px-4 py-3"></textarea>
+                        <button type="submit" className="w-full btn-primary-dark py-3 rounded-md">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+
+                <div className="max-w-2xl mx-auto mt-12 text-center">
+                    <div className="social-links-container">
+                        <a href={settings.social.linkedin} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="LinkedIn">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                        </a>
+                        <a href={settings.social.behance} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="Behance">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 6H6v12h8c2.21 0 4-1.79 4-4s-1.79-4-4-4m0 6H8v-4h6c1.1 0 2 .9 2 2s-.9 2-2 2m7-10h-4v2h4V2z"/></svg>
+                        </a>
+                        <button onClick={() => handleSocialClick('instagram')} className="social-icon-dark" aria-label="Instagram">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                        </button>
+                        <button onClick={() => handleSocialClick('facebook')} className="social-icon-dark" aria-label="Facebook">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div className={`custom-toast ${showToast ? 'show' : ''}`} role="alert">
+                {toastMessage}
+            </div>
+
+            <div className="h-32" />
+        </div>
     );
 };
 

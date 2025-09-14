@@ -35,5 +35,8 @@ export interface SiteSettings {
         twitter: string;
         linkedin: string;
         github: string;
+        instagram: string;
+        facebook: string;
+        behance: string;
     };
 }
