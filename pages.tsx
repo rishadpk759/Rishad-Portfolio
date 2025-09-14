@@ -5,6 +5,7 @@ import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTit
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
 import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { supabase } from './supabaseClient';
 
 // LAYOUTS
@@ -97,18 +98,23 @@ export const HomePage: React.FC = () => {
     useEffect(() => {
         const aboutSection = aboutSectionRef.current;
         if (!aboutSection) return;
+        
         const handleScroll = () => {
             const sectionTop = aboutSection.offsetTop;
             const scrollY = window.scrollY;
             const viewportHeight = window.innerHeight;
-            if (scrollY >= sectionTop && scrollY <= sectionTop + viewportHeight) {
+            const sectionHeight = aboutSection.offsetHeight;
+            
+            if (scrollY >= sectionTop && scrollY <= sectionTop + sectionHeight) {
                 const scrollInPin = scrollY - sectionTop;
-                const startBuffer = viewportHeight * 0.5;
-                const animationDuration = viewportHeight * 0.5;
-                const effectiveScroll = scrollInPin - startBuffer;
-                const linearProgress = Math.min(1, Math.max(0, effectiveScroll / animationDuration));
-                const easeInOut = (t: number) => t * t * (3 - 2 * t);
-                const easedProgress = easeInOut(linearProgress);
+                // Increased start buffer for more delay before animation starts
+                const startBuffer = viewportHeight * 0.4;
+                const animationDuration = Math.max(viewportHeight * 0.4, sectionHeight * 0.2);
+                const effectiveScroll = Math.max(0, scrollInPin - startBuffer);
+                const linearProgress = Math.min(1, effectiveScroll / animationDuration);
+                // Smoother easing function for better animation
+                const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                const easedProgress = easeInOutCubic(linearProgress);
                 setAboutAnimationProgress(easedProgress);
             } else if (scrollY < sectionTop) {
                 setAboutAnimationProgress(0);
@@ -116,7 +122,10 @@ export const HomePage: React.FC = () => {
                 setAboutAnimationProgress(1);
             }
         };
+        
+        // Initial call
         handleScroll();
+        
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -125,52 +134,103 @@ export const HomePage: React.FC = () => {
         const container = workContainerRef.current;
         const track = horizontalTrackRef.current;
         if (!container || !track) return;
-        const animationData = { containerHeight: 0, maxScroll: 0 };
-        const handleScroll = () => {
-            const { containerHeight, maxScroll } = animationData;
-            if (maxScroll <= 0) return;
-            const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
-            if (!firstItem) return;
-            const viewportWidth = window.innerWidth;
-            const firstItemWidth = firstItem.offsetWidth;
-            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft);
-            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-            const initialTransformX = centerOffset - trackPaddingLeft;
-            const containerTop = container.offsetTop;
-            const currentScrollY = window.scrollY;
-            const scrollInContainer = currentScrollY - containerTop;
-            const pinDuration = containerHeight - window.innerHeight;
-            const bufferZone = pinDuration * (2 / 3);
-            const animationZone = pinDuration - bufferZone;
-            if (scrollInContainer < bufferZone) {
-                track.style.transform = `translateX(${initialTransformX}px)`;
-            } else if (scrollInContainer >= pinDuration) {
-                track.style.transform = `translateX(${initialTransformX - maxScroll}px)`;
-            } else {
-                const progress = Math.max(0, Math.min(1, (scrollInContainer - bufferZone) / animationZone));
-                const currentTransformX = initialTransformX - (progress * maxScroll);
-                track.style.transform = `translateX(${currentTransformX}px)`;
-            }
-        };
-        const setupAndResizeHandler = () => {
-            if (!container || !track) return;
+        
+        let maxScroll = 0;
+        let containerHeight = 0;
+        let isHorizontalScrolling = false;
+        
+        const setupScroll = () => {
             const wrapper = track.parentElement;
             if (!wrapper) return;
-            const maxScroll = track.scrollWidth - wrapper.clientWidth;
-            animationData.maxScroll = maxScroll > 0 ? maxScroll : 0;
-            const newContainerHeight = window.innerHeight + (maxScroll > 0 ? maxScroll : 0);
-            container.style.height = `${newContainerHeight}px`;
-            animationData.containerHeight = newContainerHeight;
-            handleScroll();
+            
+            // Calculate the total width needed to show all images
+            const items = track.querySelectorAll('.work-gallery-item');
+            if (items.length === 0) return;
+            
+            const firstItem = items[0] as HTMLElement;
+            const itemWidth = firstItem.offsetWidth;
+            const gap = 24; // 6 * 4px gap
+            const totalWidth = (items.length * itemWidth) + ((items.length - 1) * gap);
+            
+            // Calculate how much we need to scroll to show all images
+            const viewportWidth = window.innerWidth;
+            const centerOffset = (viewportWidth / 2) - (itemWidth / 2);
+            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+            const initialX = centerOffset - trackPaddingLeft;
+            
+            // Max scroll is the distance from center to show the last image
+            maxScroll = Math.max(0, totalWidth - viewportWidth + initialX);
+            
+            // Set container height to create the horizontal scroll duration
+            containerHeight = window.innerHeight + maxScroll;
+            container.style.height = `${containerHeight}px`;
         };
-        const resizeObserver = new ResizeObserver(setupAndResizeHandler);
-        resizeObserver.observe(track);
+        
+        const handleScroll = () => {
+            if (maxScroll <= 0) return;
+            
+            const containerTop = container.offsetTop;
+            const scrollY = window.scrollY;
+            const scrollInContainer = scrollY - containerTop;
+            
+            // Start horizontal scrolling when we reach the container
+            if (scrollInContainer >= 0 && scrollInContainer < maxScroll) {
+                isHorizontalScrolling = true;
+                
+                // Calculate horizontal scroll progress
+                const scrollProgress = Math.max(0, Math.min(1, scrollInContainer / maxScroll));
+                
+                // Center the first image initially, then scroll left
+                const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
+                if (!firstItem) return;
+                
+                const viewportWidth = window.innerWidth;
+                const firstItemWidth = firstItem.offsetWidth;
+                const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
+                const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+                const initialX = centerOffset - trackPaddingLeft;
+                
+                const translateX = initialX - (scrollProgress * maxScroll);
+                track.style.transform = `translateX(${translateX}px)`;
+            } else {
+                isHorizontalScrolling = false;
+            }
+        };
+        
+        const handleWheel = (e: WheelEvent) => {
+            if (maxScroll <= 0) return;
+            
+            const containerTop = container.offsetTop;
+            const scrollY = window.scrollY;
+            const scrollInContainer = scrollY - containerTop;
+            
+            // Only handle wheel when in the horizontal scroll section
+            if (scrollInContainer >= 0 && scrollInContainer < maxScroll) {
+                e.preventDefault();
+                
+                const scrollSpeed = 50;
+                const deltaY = e.deltaY;
+                const newScrollY = Math.max(containerTop, Math.min(containerTop + maxScroll, scrollY + deltaY * scrollSpeed));
+                
+                window.scrollTo(0, newScrollY);
+            }
+        };
+        
+        // Initial setup
+        setupScroll();
+        handleScroll();
+        
+        // Event listeners
         window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', setupScroll);
+        window.addEventListener('wheel', handleWheel, { passive: false });
+        
         return () => {
-            resizeObserver.disconnect();
             window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', setupScroll);
+            window.removeEventListener('wheel', handleWheel);
         };
-    }, []);
+    }, [projects]);
     
     useEffect(() => {
         const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section, .portfolio-gallery-item');
@@ -189,47 +249,50 @@ export const HomePage: React.FC = () => {
     useEffect(() => {
         const container = servicesContainerRef.current;
         if (!container) return;
+        
         const handleScroll = () => {
             if (!container) return;
+            
             const containerTop = container.offsetTop;
             const containerHeight = container.offsetHeight;
             const viewportHeight = window.innerHeight;
             const scrollY = window.scrollY;
+            
             const stickyStart = containerTop;
             const stickyEnd = containerTop + containerHeight - viewportHeight;
 
             if (scrollY >= stickyStart && scrollY <= stickyEnd) {
                 const scrollInContainer = scrollY - stickyStart;
+                const maxScroll = containerHeight - viewportHeight;
+                const scrollProgress = Math.min(scrollInContainer / maxScroll, 1);
+                
                 setServiceTextTranslateY(scrollInContainer);
                 
-                const index = Math.floor((scrollInContainer + viewportHeight / 2) / viewportHeight);
-                const newActiveIndex = Math.max(0, Math.min(index, SERVICES.length - 1));
+                // Calculate which service should be active based on scroll progress
+                const serviceIndex = Math.floor(scrollProgress * SERVICES.length);
+                const newActiveIndex = Math.max(0, Math.min(serviceIndex, SERVICES.length - 1));
                 
                 if (activeServiceIndex !== newActiveIndex) {
                     setActiveServiceIndex(newActiveIndex);
                 }
-
             } else if (scrollY < stickyStart) {
                 setServiceTextTranslateY(0);
                 setActiveServiceIndex(0);
             } else {
-                setServiceTextTranslateY(containerHeight - viewportHeight);
+                setServiceTextTranslateY(Math.max(0, containerHeight - viewportHeight));
                 setActiveServiceIndex(SERVICES.length - 1);
             }
         };
         
-        const timeoutId = setTimeout(() => {
-            handleScroll();
-            window.addEventListener('scroll', handleScroll, { passive: true });
-        }, 100);
-
-        const resizeHandler = () => handleScroll();
-        window.addEventListener('resize', resizeHandler);
+        // Initial call
+        handleScroll();
+        
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', handleScroll);
 
         return () => {
-            clearTimeout(timeoutId);
             window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('resize', resizeHandler);
+            window.removeEventListener('resize', handleScroll);
         };
     }, [activeServiceIndex]);
 
@@ -260,9 +323,9 @@ export const HomePage: React.FC = () => {
                                  <div className="w-full max-w-sm mx-auto md:col-span-3">
                                      <CreativeImageFrame imageUrl={settings.about.photo} />
                                  </div>
-                                 <div className="md:text-left md:col-span-7">
+                                 <div className="md:text-left md:col-span-7 text-center md:text-left">
                                     <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(01) About Me</p>
-                                    <AnimatedText text="I’m a creative designer specializing in branding, digital marketing, and UI/UX. My work blends strategy with design to craft impactful visuals and experiences." className="text-3xl md:text-5xl font-sans font-light leading-spacious" progress={aboutAnimationProgress} />
+                                    <AnimatedText text="I'm a creative designer specializing in branding, digital marketing, and UI/UX. My work blends strategy with design to craft impactful visuals and experiences." className="text-2xl md:text-3xl lg:text-5xl font-sans font-light leading-spacious" progress={aboutAnimationProgress} />
                                     <Link to="/about" className="animated-link-underline inline-block mt-8 uppercase tracking-widest text-sm font-semibold text-black">
                                         Learn more about me
                                     </Link>
@@ -274,12 +337,12 @@ export const HomePage: React.FC = () => {
                     <section id="work-section" className="relative z-20 bg-dark-bg">
                         <div ref={workContainerRef} className="relative">
                             <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden">
-                                <div className="container mx-auto px-6 mb-8 flex justify-between items-end">
+                                <div className="container mx-auto px-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                                     <div>
                                         <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
-                                        <h2 className="font-sans text-4xl text-white font-light">Work Highlights</h2>
+                                        <h2 className="font-sans text-2xl md:text-4xl text-white font-light">Work Highlights</h2>
                                     </div>
-                                    <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold hidden md:inline-block"> View All Works → </Link>
+                                    <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold text-sm md:text-base"> View All Works → </Link>
                                 </div>
                                 <div className="horizontal-scroll-wrapper">
                                     <div ref={horizontalTrackRef} className="horizontal-scroll-track">
@@ -301,24 +364,24 @@ export const HomePage: React.FC = () => {
                     </section>
                 </div>
                 
-                <section id="services-section" className="relative z-30 bg-white text-black">
-                    <div ref={servicesContainerRef} className="services-container">
+                <section id="services-section" ref={servicesContainerRef} className="relative z-30 bg-white text-black">
+                    <div className="services-container">
                         <div className="services-sticky-wrapper">
                             <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                                 <div className="overflow-hidden h-screen relative">
-                                    <div className="absolute top-0 left-0 w-full" style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
+                                    <div className="w-full" style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
                                         {SERVICES.map((service, index) => (
-                                            <div key={index} data-index={index} className="service-text-item">
-                                                <div className="max-w-md">
+                                            <div key={index} data-index={index} className="service-text-item h-screen flex items-center">
+                                                <div className="max-w-md px-4 md:px-0">
                                                     <div className="flex items-center gap-4 mb-4">
                                                         <p className="service-phase-text">SERVICE 0{index + 1}</p>
                                                         <div className="h-[1px] w-16 bg-gray-300"></div>
                                                     </div>
-                                                    <h3 className="font-sans text-4xl font-bold mb-4 text-black">{service.title}</h3>
-                                                    <p className="text-gray-600 mb-6">{service.description}</p>
+                                                    <h3 className="font-sans text-2xl md:text-4xl font-bold mb-4 text-black">{service.title}</h3>
+                                                    <p className="text-gray-600 mb-6 text-sm md:text-base">{service.description}</p>
                                                     <ul className="service-points-list">
                                                         {service.points.map((point, pointIndex) => (
-                                                            <li key={pointIndex} className="service-point-item"> {point} </li>
+                                                            <li key={pointIndex} className="service-point-item text-sm md:text-base"> {point} </li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -326,7 +389,7 @@ export const HomePage: React.FC = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="h-full flex items-center justify-center">
+                                <div className="h-full flex items-center justify-center relative hidden md:flex">
                                     <div className="service-image-container">
                                         {SERVICES.map((service, index) => (
                                             <img key={index} src={service.imageUrl} alt={service.title} className={`service-image ${activeServiceIndex === index ? 'active' : ''}`} />
@@ -341,7 +404,7 @@ export const HomePage: React.FC = () => {
                 <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-hidden">
                     <Link to="/contact" className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
                         <h2 className="hero-text-bg whitespace-normal" dangerouslySetInnerHTML={{ __html: 'FUEL ME WITH <br /> COFFEE' }} />
-                        <p className="font-sans text-xl md:text-3xl text-gray-400 mt-8"> And I’ll fuel your brand with design. </p>
+                        <p className="font-sans text-lg md:text-xl lg:text-3xl text-gray-400 mt-8 px-4"> And I'll fuel your brand with design. </p>
                     </Link>
                 </section>
             </div>
@@ -359,56 +422,95 @@ export const PortfolioPage: React.FC = () => {
     
     const filteredProjects = projects.filter(p => selectedCategory === 'All' || p.category === selectedCategory);
 
-    const animationData = useRef({ wrapperHeight: 0, maxScroll: 0, }).current;
     
     useEffect(() => {
         const wrapper = wrapperRef.current;
         const track = trackRef.current;
         if (!wrapper || !track) return;
         
-        const handleScroll = () => {
-            const { wrapperHeight, maxScroll } = animationData;
-            if (maxScroll <= 0) return;
-            const wrapperTop = wrapper.offsetTop;
-            const currentScrollY = window.scrollY;
-            const scrollInWrapper = currentScrollY - wrapperTop;
-            if (scrollInWrapper < 0) {
-                if (trackRef.current) trackRef.current.style.transform = `translateX(0px)`;
-                if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', '0');
-                return;
+        let maxScroll = 0;
+        let wrapperHeight = 0;
+        let isDesktop = window.innerWidth >= 768; // md breakpoint
+        
+        const setupScroll = () => {
+            isDesktop = window.innerWidth >= 768;
+            
+            if (isDesktop) {
+                // Desktop: Horizontal scroll
+                maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+                wrapperHeight = window.innerHeight + maxScroll;
+                wrapper.style.height = `${wrapperHeight}px`;
+            } else {
+                // Mobile: Normal vertical scroll
+                wrapper.style.height = 'auto';
+                maxScroll = 0;
             }
+        };
+        
+        const handleScroll = () => {
+            if (!isDesktop || maxScroll <= 0) return;
+            
+            const wrapperTop = wrapper.offsetTop;
+            const scrollY = window.scrollY;
+            const scrollProgress = Math.max(0, Math.min(1, (scrollY - wrapperTop) / (wrapperHeight - window.innerHeight)));
+            
+            // Center the first image initially, then scroll left
+            const firstItem = track.querySelector('.portfolio-gallery-item') as HTMLElement;
+            if (!firstItem) return;
+            
+            const viewportWidth = window.innerWidth;
+            const firstItemWidth = firstItem.offsetWidth;
+            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
+            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+            const initialX = centerOffset - trackPaddingLeft;
+            
+            const translateX = initialX - (scrollProgress * maxScroll);
+            if (trackRef.current) trackRef.current.style.transform = `translateX(${translateX}px)`;
+            if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${scrollProgress}`);
+        };
+        
+        const handleWheel = (e: WheelEvent) => {
+            if (!isDesktop || maxScroll <= 0) return;
+            
+            const wrapperTop = wrapper.offsetTop;
+            const scrollY = window.scrollY;
+            const scrollInWrapper = scrollY - wrapperTop;
             const pinDuration = wrapperHeight - window.innerHeight;
-            if (pinDuration <= 0) return;
-            const progress = Math.max(0, Math.min(1, scrollInWrapper / pinDuration));
-            if (trackRef.current) trackRef.current.style.transform = `translateX(-${progress * maxScroll}px)`;
-            if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${progress}`);
+            
+            // Only handle wheel when in the pinned section
+            if (scrollInWrapper > 0 && scrollInWrapper < pinDuration) {
+                e.preventDefault();
+                
+                const scrollSpeed = 50;
+                const deltaY = e.deltaY;
+                const newScrollY = Math.max(wrapperTop, Math.min(wrapperTop + pinDuration, scrollY + deltaY * scrollSpeed));
+                
+                window.scrollTo(0, newScrollY);
+            }
         };
-
-        const setupAndResizeHandler = () => {
-            if (!wrapper || !track) return;
-            const maxScroll = track.scrollWidth - track.clientWidth;
-            animationData.maxScroll = Math.max(0, maxScroll);
-            const newHeight = window.innerHeight + animationData.maxScroll;
-            wrapper.style.height = `${newHeight}px`;
-            animationData.wrapperHeight = newHeight;
-            handleScroll();
-        };
-        const resizeObserver = new ResizeObserver(setupAndResizeHandler);
-        resizeObserver.observe(track);
+        
+        // Initial setup
+        setupScroll();
+        handleScroll();
+        
+        // Event listeners
         window.addEventListener('scroll', handleScroll, { passive: true });
-        setupAndResizeHandler();
+        window.addEventListener('resize', setupScroll);
+        window.addEventListener('wheel', handleWheel, { passive: false });
+        
         return () => {
-            resizeObserver.disconnect();
             window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', setupScroll);
+            window.removeEventListener('wheel', handleWheel);
         };
-    }, [filteredProjects, animationData]);
+    }, [filteredProjects]);
 
     return (
         <div ref={wrapperRef} className="portfolio-page-wrapper animate-fadeIn">
             <div className="portfolio-sticky-container">
                 <div className="container mx-auto px-6 pt-20 flex-shrink-0">
                     <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(03) PORTFOLIO</p>
-                    <h1 className="font-sans text-5xl font-bold text-white">Selected Works</h1>
+                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
                     <div className="category-filters">
                         {PORTFOLIO_CATEGORIES.map(category => (
                             <button key={category} onClick={() => setSelectedCategory(category)} className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}>
@@ -450,8 +552,8 @@ export const ProjectDetailPage: React.FC = () => {
         <>
             <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
                 <div className="text-center mb-12">
-                    <h1 className="font-sans text-5xl font-bold text-white">{project.title}</h1>
-                    <p className="text-xl text-gray-400 mt-2">{project.client}</p>
+                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">{project.title}</h1>
+                    <p className="text-lg md:text-xl text-gray-400 mt-2">{project.client}</p>
                 </div>
                 <div className="mb-12">
                     {project.images.map((img, index) => (
@@ -466,7 +568,7 @@ export const ProjectDetailPage: React.FC = () => {
             
             <section className="project-cta-section py-20">
                 <div className="container mx-auto px-6 text-center max-w-2xl">
-                    <h2 className="font-sans text-3xl md:text-4xl text-white font-light mb-6"> Do you need something like this? <br /> Just say hi, and let’s get started. </h2>
+                    <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl text-white font-light mb-6"> Do you need something like this? <br /> Just say hi, and let's get started. </h2>
                     <Link to="/contact" className="project-cta-button inline-block"> Contact Now </Link>
                 </div>
             </section>
@@ -494,7 +596,7 @@ export const BlogPage: React.FC = () => {
     return (
         <>
             <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16 min-h-screen">
-                <h1 className="font-sans text-5xl font-bold text-center mb-12 text-white">From the Blog</h1>
+                <h1 className="font-sans text-3xl md:text-5xl font-bold text-center mb-12 text-white">From the Blog</h1>
                 
                 <Link to={`/blog/${latestPost.id}`} className="blog-featured-post group">
                     <img src={latestPost.imageUrl} alt={latestPost.title} className="blog-featured-image transition-transform duration-300 group-hover:scale-105" />
@@ -528,7 +630,7 @@ export const BlogPostPage: React.FC = () => {
         <>
             <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
                 <div className="max-w-3xl mx-auto">
-                    <h1 className="font-sans text-5xl font-bold text-white leading-tight">{post.title}</h1>
+                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-white leading-tight">{post.title}</h1>
                     <div className="blog-meta my-4">
                         <span>{post.date}</span>
                         <div className="blog-meta-dot"></div>
@@ -555,16 +657,16 @@ export const AboutPage: React.FC = () => {
                         <div className="w-full max-w-sm mx-auto md:col-span-3">
                             <CreativeImageFrame imageUrl={settings.about.photo} />
                         </div>
-                        <div className="md:col-span-7">
-                             <h1 className="font-sans text-5xl font-bold text-black mb-6">About Me</h1>
-                             <p className="text-black text-lg leading-spacious whitespace-pre-wrap">{settings.about.bio}</p>
+                        <div className="md:col-span-7 text-center md:text-left">
+                             <h1 className="font-sans text-3xl md:text-5xl font-bold text-black mb-6">About Me</h1>
+                             <p className="text-black text-base md:text-lg leading-spacious whitespace-pre-wrap">{settings.about.bio}</p>
                         </div>
                     </div>
                 </div>
             </section>
             <section className="bg-dark-bg py-20">
                 <div className="container mx-auto px-6">
-                    <h2 className="font-sans text-4xl font-bold text-white text-center mb-12">Work History</h2>
+                    <h2 className="font-sans text-2xl md:text-4xl font-bold text-white text-center mb-12">Work History</h2>
                     <div className="timeline-container">
                         {WORK_HISTORY.map((job, index) => (
                             <div key={index} className="timeline-item">
@@ -578,7 +680,7 @@ export const AboutPage: React.FC = () => {
             </section>
             <section className="facts-section py-20">
                 <div className="container mx-auto px-6">
-                    <h2 className="font-sans text-4xl font-bold text-black text-center mb-12">By the Numbers</h2>
+                    <h2 className="font-sans text-2xl md:text-4xl font-bold text-black text-center mb-12">By the Numbers</h2>
                     <div className="facts-grid">
                         {FACTS.map((fact, index) => (
                             <div key={index} className="fact-card">
@@ -626,8 +728,8 @@ export const ContactPage: React.FC = () => {
         <div className="contact-page-light">
             <div className="container mx-auto px-6 py-12 pt-20 min-h-screen animate-fadeIn">
                 <div className="max-w-2xl mx-auto text-center">
-                    <h1 className="font-sans text-5xl font-bold text-black">Get in Touch</h1>
-                    <p className="text-gray-600 mt-4 text-lg">Have a project in mind or just want to say hello? Drop me a line.</p>
+                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-black">Get in Touch</h1>
+                    <p className="text-gray-600 mt-4 text-base md:text-lg">Have a project in mind or just want to say hello? Drop me a line.</p>
                 </div>
                 <div className="max-w-2xl mx-auto mt-12">
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -727,6 +829,7 @@ export const AdminDashboardPage: React.FC = () => {
                  <div className="flex flex-wrap gap-4">
                     <Link to="/admin/portfolio"><AdminButton>Manage Portfolio</AdminButton></Link>
                     <Link to="/admin/blog"><AdminButton>Manage Blog</AdminButton></Link>
+                    <Link to="/admin/services"><AdminButton>Manage Services</AdminButton></Link>
                     <Link to="/admin/settings"><AdminButton>Manage Settings</AdminButton></Link>
                 </div>
             </div>
@@ -828,10 +931,15 @@ export const AdminSettingsPage: React.FC = () => {
         }
     };
     
-    const handleSave = () => {
-        updateSettings(formState);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+    const handleSave = async () => {
+        try {
+            await updateSettings(formState);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            alert("Failed to save settings. Please try again.");
+        }
     };
 
     return (
@@ -940,11 +1048,41 @@ export const AdminPortfolioEditor: React.FC = () => {
         if (project.images.length > 1) setProject(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (isEditMode) updateProject({ ...project, id });
-        else addProject(project);
-        navigate('/admin/portfolio');
+        
+        // Validate required fields
+        if (!project.title.trim()) {
+            alert("Please enter a project title.");
+            return;
+        }
+        
+        if (!project.client.trim()) {
+            alert("Please enter a client name.");
+            return;
+        }
+        
+        if (!project.description.trim()) {
+            alert("Please enter a project description.");
+            return;
+        }
+        
+        if (!project.thumbnail) {
+            alert("Please upload a thumbnail image.");
+            return;
+        }
+        
+        try {
+            if (isEditMode) {
+                await updateProject({ ...project, id });
+            } else {
+                await addProject(project);
+            }
+            navigate('/admin/portfolio');
+        } catch (error) {
+            console.error('Error saving project:', error);
+            alert("Failed to save project. Please try again.");
+        }
     };
 
     return (
@@ -1012,13 +1150,145 @@ export const AdminPortfolioEditor: React.FC = () => {
 
 const BLANK_POST: Omit<BlogPost, 'id'> = { title: '', author: 'Rishad PK', date: new Date().toISOString().split('T')[0], imageUrl: '', excerpt: '', content: '', views: 0 };
 
+export const AdminServicesManager: React.FC = () => {
+    const [services, setServices] = useState(SERVICES);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const handleFileChange = (index: number, file: File) => {
+        handleFileRead(file, (result) => {
+            const newServices = [...services];
+            newServices[index] = { ...newServices[index], imageUrl: result };
+            setServices(newServices);
+        });
+    };
+
+    const handleSave = () => {
+        // In a real app, you'd save to Supabase here
+        console.log('Saving services:', services);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+    };
+
+    return (
+        <div>
+            <PageTitle subtitle="Manage your services section images and content.">Services Manager</PageTitle>
+            
+            <div className="space-y-6 max-w-4xl">
+                {services.map((service, index) => (
+                    <div key={index} className="admin-card p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-sans text-xl font-bold">{service.title}</h3>
+                            <span className="text-sm text-gray-500">Service {index + 1}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="form-label-light block mb-2">Service Image</label>
+                                <p className="form-input-hint mb-4">Recommended: 800x1200px (2:3 ratio)</p>
+                                <div className="image-upload-wrapper">
+                                    <img src={service.imageUrl} alt={service.title} className="image-preview-admin h-32 w-auto" />
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={(e) => e.target.files?.[0] && handleFileChange(index, e.target.files[0])} 
+                                        className="form-input-admin-light file-input flex-grow" 
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="form-label-light block mb-2">Service Details</label>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="form-label-light block mb-1">Title</label>
+                                        <input 
+                                            value={service.title} 
+                                            onChange={(e) => {
+                                                const newServices = [...services];
+                                                newServices[index] = { ...newServices[index], title: e.target.value };
+                                                setServices(newServices);
+                                            }}
+                                            className="form-input-admin-light" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="form-label-light block mb-1">Description</label>
+                                        <textarea 
+                                            value={service.description} 
+                                            onChange={(e) => {
+                                                const newServices = [...services];
+                                                newServices[index] = { ...newServices[index], description: e.target.value };
+                                                setServices(newServices);
+                                            }}
+                                            rows={3}
+                                            className="form-input-admin-light" 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                            <label className="form-label-light block mb-2">Service Points</label>
+                            <div className="space-y-2">
+                                {service.points.map((point, pointIndex) => (
+                                    <div key={pointIndex} className="flex items-center space-x-2">
+                                        <input 
+                                            value={point} 
+                                            onChange={(e) => {
+                                                const newServices = [...services];
+                                                newServices[index].points[pointIndex] = e.target.value;
+                                                setServices(newServices);
+                                            }}
+                                            className="form-input-admin-light flex-grow" 
+                                        />
+                                        <AdminButton 
+                                            variant="danger" 
+                                            size="sm" 
+                                            onClick={() => {
+                                                const newServices = [...services];
+                                                newServices[index].points = newServices[index].points.filter((_, i) => i !== pointIndex);
+                                                setServices(newServices);
+                                            }}
+                                            disabled={service.points.length <= 1}
+                                        >
+                                            Remove
+                                        </AdminButton>
+                                    </div>
+                                ))}
+                                <AdminButton 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    onClick={() => {
+                                        const newServices = [...services];
+                                        newServices[index].points.push('');
+                                        setServices(newServices);
+                                    }}
+                                >
+                                    Add Point
+                                </AdminButton>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                
+                <div className="text-right flex items-center justify-end">
+                    {showSuccess && <p className="text-black mr-4">Services updated successfully!</p>}
+                    <AdminButton onClick={handleSave}>Save All Services</AdminButton>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const AdminBlogEditor: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { blogPosts, addBlogPost, updateBlogPost } = useData();
     const isEditMode = id !== undefined;
     const [post, setPost] = useState(BLANK_POST);
-    const quillRef = useRef<any>(null);
+    const quillRef = useRef<ReactQuill>(null);
 
     useEffect(() => {
         if (isEditMode) {
@@ -1054,27 +1324,43 @@ export const AdminBlogEditor: React.FC = () => {
         input.click();
     
         input.onchange = async () => {
-            if (input.files) {
-                const file = input.files[0];
-                const fileExt = file.name.split('.').pop();
-                const fileName = `content-${Date.now()}.${fileExt}`;
-                const filePath = `blog-content/${fileName}`;
-    
-                const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
-    
-                if (uploadError) {
-                    console.error('Error uploading inline image:', uploadError);
-                    alert("Image upload failed. Please try again.");
-                    return;
+            if (input.files && input.files[0]) {
+                try {
+                    const file = input.files[0];
+                    
+                    // Validate file size (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert("Image size must be less than 5MB");
+                        return;
+                    }
+                    
+                    const fileExt = file.name.split('.').pop() || 'jpg';
+                    const fileName = `content-${Date.now()}.${fileExt}`;
+                    const filePath = `blog-content/${fileName}`;
+        
+                    const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+        
+                    if (uploadError) {
+                        console.error('Error uploading inline image:', uploadError);
+                        alert("Image upload failed. Please try again.");
+                        return;
+                    }
+        
+                    const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+                    const imageUrl = data.publicUrl;
+        
+                    const quill = quillRef.current?.getEditor();
+                    if (quill) {
+                        const range = quill.getSelection(true);
+                        if (range) {
+                            quill.insertEmbed(range.index, 'image', imageUrl);
+                            quill.setSelection(range.index + 1);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error in image handler:', error);
+                    alert("An error occurred while uploading the image.");
                 }
-    
-                const { data } = supabase.storage.from('images').getPublicUrl(filePath);
-                const imageUrl = data.publicUrl;
-    
-                const quill = quillRef.current.getEditor();
-                const range = quill.getSelection(true);
-                quill.insertEmbed(range.index, 'image', imageUrl);
-                quill.setSelection(range.index + 1);
             }
         };
     }, []);
@@ -1082,23 +1368,56 @@ export const AdminBlogEditor: React.FC = () => {
     const modules = useMemo(() => ({
         toolbar: {
             container: [
-                ['bold', 'italic'],
-                [{'list': 'bullet'}],
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                 ['link', 'image'],
+                ['clean']
             ],
             handlers: {
                 image: imageHandler,
             }
+        },
+        clipboard: {
+            matchVisual: false,
         }
     }), [imageHandler]);
 
-    const formats = ['bold', 'italic', 'list', 'bullet', 'link', 'image'];
+    const formats = [
+        'header', 'bold', 'italic', 'underline',
+        'list', 'bullet', 'link', 'image'
+    ];
     
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (isEditMode) updateBlogPost({ ...post, id, views: blogPosts.find(p=>p.id===id)?.views || 0 });
-        else addBlogPost(post);
-        navigate('/admin/blog');
+        
+        // Validate required fields
+        if (!post.title.trim()) {
+            alert("Please enter a title for the blog post.");
+            return;
+        }
+        
+        if (!post.excerpt.trim()) {
+            alert("Please enter an excerpt for the blog post.");
+            return;
+        }
+        
+        if (!post.content.trim()) {
+            alert("Please enter content for the blog post.");
+            return;
+        }
+        
+        try {
+            if (isEditMode) {
+                await updateBlogPost({ ...post, id, views: blogPosts.find(p=>p.id===id)?.views || 0 });
+            } else {
+                await addBlogPost(post);
+            }
+            navigate('/admin/blog');
+        } catch (error) {
+            console.error('Error saving blog post:', error);
+            alert("Failed to save blog post. Please try again.");
+        }
     };
     
     return (

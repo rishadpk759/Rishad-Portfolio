@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider, useData } from './context';
-import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout, AdminPortfolioEditor, AdminBlogEditor } from './pages';
+import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout, AdminPortfolioEditor, AdminBlogEditor, AdminServicesManager } from './pages';
 
 const App: React.FC = () => {
     return (
@@ -66,6 +66,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="blog" element={<AdminBlogManager />} />
                     <Route path="blog/add" element={<AdminBlogEditor />} />
                     <Route path="blog/edit/:id" element={<AdminBlogEditor />} />
+                    <Route path="services" element={<AdminServicesManager />} />
                     <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>
             </Routes>

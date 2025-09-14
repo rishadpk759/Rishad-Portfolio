@@ -153,83 +153,123 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const logout = () => setIsAuthenticated(false);
 
     const addProject = async (projectData: Omit<Project, 'id'>) => {
-        const thumbnail = await uploadBase64Image(projectData.thumbnail, 'thumbnails');
-        const images = await Promise.all(projectData.images.map(img => uploadBase64Image(img, 'project-images')));
-        
-        const { data, error } = await supabase.from('projects').insert([{...projectData, thumbnail, images}]).select();
-        if (error) throw error;
-        if (data) setProjects(prev => [data[0], ...prev]);
+        try {
+            const thumbnail = await uploadBase64Image(projectData.thumbnail, 'thumbnails');
+            const images = await Promise.all(projectData.images.map(img => uploadBase64Image(img, 'project-images')));
+            
+            const { data, error } = await supabase.from('projects').insert([{...projectData, thumbnail, images}]).select();
+            if (error) throw error;
+            if (data) setProjects(prev => [data[0], ...prev]);
+        } catch (error) {
+            console.error('Error adding project:', error);
+            throw error;
+        }
     };
 
     const updateProject = async (updatedProject: Project) => {
-        const thumbnail = await uploadBase64Image(updatedProject.thumbnail, 'thumbnails');
-        const images = await Promise.all(updatedProject.images.map(img => uploadBase64Image(img, 'project-images')));
-        
-        const { data, error } = await supabase.from('projects').update({...updatedProject, thumbnail, images}).eq('id', updatedProject.id).select();
-        if (error) throw error;
-        if (data) setProjects(prev => prev.map(p => p.id === updatedProject.id ? data[0] : p));
+        try {
+            const thumbnail = await uploadBase64Image(updatedProject.thumbnail, 'thumbnails');
+            const images = await Promise.all(updatedProject.images.map(img => uploadBase64Image(img, 'project-images')));
+            
+            const { data, error } = await supabase.from('projects').update({...updatedProject, thumbnail, images}).eq('id', updatedProject.id).select();
+            if (error) throw error;
+            if (data) setProjects(prev => prev.map(p => p.id === updatedProject.id ? data[0] : p));
+        } catch (error) {
+            console.error('Error updating project:', error);
+            throw error;
+        }
     };
 
     const deleteProject = async (id: string) => {
-        const { error } = await supabase.from('projects').delete().eq('id', id);
-        if (error) throw error;
-        setProjects(prev => prev.filter(p => p.id !== id));
+        try {
+            const { error } = await supabase.from('projects').delete().eq('id', id);
+            if (error) throw error;
+            setProjects(prev => prev.filter(p => p.id !== id));
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            throw error;
+        }
     };
 
     const setFeaturedProject = async (id: string) => {
-        await supabase.from('projects').update({ isFeatured: false }).neq('id', id);
-        await supabase.from('projects').update({ isFeatured: true }).eq('id', id);
-        setProjects(prev => prev.map(p => ({ ...p, isFeatured: p.id === id })));
+        try {
+            await supabase.from('projects').update({ isFeatured: false }).neq('id', id);
+            await supabase.from('projects').update({ isFeatured: true }).eq('id', id);
+            setProjects(prev => prev.map(p => ({ ...p, isFeatured: p.id === id })));
+        } catch (error) {
+            console.error('Error setting featured project:', error);
+            throw error;
+        }
     };
     
     const addBlogPost = async (postData: Omit<BlogPost, 'id'>) => {
-        const imageUrl = await uploadBase64Image(postData.imageUrl, 'blog-covers');
+        try {
+            const imageUrl = await uploadBase64Image(postData.imageUrl, 'blog-covers');
 
-        const { data, error } = await supabase.from('blog_posts').insert([{ ...postData, imageUrl, views: 0 }]).select();
-        if (error) throw error;
-        if (data) setBlogPosts(prev => [data[0], ...prev]);
+            const { data, error } = await supabase.from('blog_posts').insert([{ ...postData, imageUrl, views: 0 }]).select();
+            if (error) throw error;
+            if (data) setBlogPosts(prev => [data[0], ...prev]);
+        } catch (error) {
+            console.error('Error adding blog post:', error);
+            throw error;
+        }
     };
 
     const updateBlogPost = async (updatedPost: BlogPost) => {
-        const imageUrl = await uploadBase64Image(updatedPost.imageUrl, 'blog-covers');
+        try {
+            const imageUrl = await uploadBase64Image(updatedPost.imageUrl, 'blog-covers');
 
-        const { data, error } = await supabase.from('blog_posts').update({ ...updatedPost, imageUrl }).eq('id', updatedPost.id).select();
-        if (error) throw error;
-        if (data) setBlogPosts(prev => prev.map(p => p.id === updatedPost.id ? data[0] : p));
+            const { data, error } = await supabase.from('blog_posts').update({ ...updatedPost, imageUrl }).eq('id', updatedPost.id).select();
+            if (error) throw error;
+            if (data) setBlogPosts(prev => prev.map(p => p.id === updatedPost.id ? data[0] : p));
+        } catch (error) {
+            console.error('Error updating blog post:', error);
+            throw error;
+        }
     };
 
     const deleteBlogPost = async (id: string) => {
-        const { error } = await supabase.from('blog_posts').delete().eq('id', id);
-        if (error) throw error;
-        setBlogPosts(prev => prev.filter(p => p.id !== id));
+        try {
+            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
+            if (error) throw error;
+            setBlogPosts(prev => prev.filter(p => p.id !== id));
+        } catch (error) {
+            console.error('Error deleting blog post:', error);
+            throw error;
+        }
     };
 
     const updateSettings = async (newSettings: SiteSettings) => {
-        const [heroImage, aboutPhoto] = await Promise.all([
-            uploadBase64Image(newSettings.heroImage, 'site-assets'),
-            uploadBase64Image(newSettings.about.photo, 'site-assets')
-        ]);
-        
-        // Flatten nested structure for DB update
-        const settingsForDb = {
-            siteTitle: newSettings.siteTitle,
-            heroName: newSettings.heroName,
-            heroImage,
-            about_bio: newSettings.about.bio,
-            about_photo: aboutPhoto,
-            contact_email: newSettings.contact.email,
-            contact_phone: newSettings.contact.phone,
-            social_twitter: newSettings.social.twitter,
-            social_linkedin: newSettings.social.linkedin,
-            social_github: newSettings.social.github,
-            social_instagram: newSettings.social.instagram,
-            social_facebook: newSettings.social.facebook,
-            social_behance: newSettings.social.behance,
-        };
-        
-        const { error } = await supabase.from('settings').update(settingsForDb).eq('id', 1);
-        if (error) throw error;
-        setSettings(newSettings);
+        try {
+            const [heroImage, aboutPhoto] = await Promise.all([
+                uploadBase64Image(newSettings.heroImage, 'site-assets'),
+                uploadBase64Image(newSettings.about.photo, 'site-assets')
+            ]);
+            
+            // Flatten nested structure for DB update
+            const settingsForDb = {
+                siteTitle: newSettings.siteTitle,
+                heroName: newSettings.heroName,
+                heroImage,
+                about_bio: newSettings.about.bio,
+                about_photo: aboutPhoto,
+                contact_email: newSettings.contact.email,
+                contact_phone: newSettings.contact.phone,
+                social_twitter: newSettings.social.twitter,
+                social_linkedin: newSettings.social.linkedin,
+                social_github: newSettings.social.github,
+                social_instagram: newSettings.social.instagram,
+                social_facebook: newSettings.social.facebook,
+                social_behance: newSettings.social.behance,
+            };
+            
+            const { error } = await supabase.from('settings').update(settingsForDb).eq('id', 1);
+            if (error) throw error;
+            setSettings(newSettings);
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            throw error;
+        }
     };
 
     const value = {

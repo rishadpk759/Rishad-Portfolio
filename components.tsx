@@ -24,8 +24,7 @@ const useScrollSpy = (ids: string[], options: IntersectionObserverInit) => {
         elements.forEach(el => observer.current?.observe(el));
 
         return () => observer.current?.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ids.join(','), options]);
+    }, [ids, options]);
 
     return activeId;
 }
@@ -181,6 +180,7 @@ export const AdminSidebar: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
             <AdminNavLink to="/admin">Dashboard</AdminNavLink>
             <AdminNavLink to="/admin/portfolio">Portfolio</AdminNavLink>
             <AdminNavLink to="/admin/blog">Blog</AdminNavLink>
+            <AdminNavLink to="/admin/services">Services</AdminNavLink>
             <AdminNavLink to="/admin/settings">Settings</AdminNavLink>
         </nav>
         <button onClick={onLogout} className="w-full text-left p-3 rounded-md admin-logout-btn">
