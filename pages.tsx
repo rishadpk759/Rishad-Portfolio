@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
 import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame } from './components';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
+import ReactQuill from 'react-quill';
+import { supabase } from './supabaseClient';
 
 // LAYOUTS
 export const PublicLayout: React.FC = () => (
@@ -1008,7 +1010,6 @@ export const AdminPortfolioEditor: React.FC = () => {
     );
 };
 
-// FIX: Added `views: 0` and updated type to `Omit<BlogPost, 'id'>` to match `addBlogPost` signature.
 const BLANK_POST: Omit<BlogPost, 'id'> = { title: '', author: 'Rishad PK', date: new Date().toISOString().split('T')[0], imageUrl: '', excerpt: '', content: '', views: 0 };
 
 export const AdminBlogEditor: React.FC = () => {
@@ -1017,34 +1018,23 @@ export const AdminBlogEditor: React.FC = () => {
     const { blogPosts, addBlogPost, updateBlogPost } = useData();
     const isEditMode = id !== undefined;
     const [post, setPost] = useState(BLANK_POST);
-    
-    const editorRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const quillRef = useRef<any>(null);
 
     useEffect(() => {
         if (isEditMode) {
             const existingPost = blogPosts.find(p => p.id === id);
             if (existingPost) {
-                const safeContent = existingPost.content || '';
-                setPost({ ...existingPost, content: safeContent });
-                if (editorRef.current && editorRef.current.innerHTML !== safeContent) {
-                    editorRef.current.innerHTML = safeContent;
-                }
+                setPost(existingPost);
             } else if (blogPosts.length > 0 && !existingPost) {
-                // If posts are loaded but this one doesn't exist, redirect.
                 navigate('/admin/blog', { replace: true });
             }
         } else {
-            // Reset form for "add new" mode
             setPost(BLANK_POST);
-            if (editorRef.current && editorRef.current.innerHTML !== '') {
-                editorRef.current.innerHTML = '';
-            }
         }
     }, [id, blogPosts, isEditMode, navigate]);
     
-    const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
-        setPost(prev => ({...prev, content: e.currentTarget.innerHTML}));
+    const handleContentChange = (content: string) => {
+        setPost(prev => ({...prev, content}));
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1056,23 +1046,54 @@ export const AdminBlogEditor: React.FC = () => {
             handleFileRead(e.target.files[0], (result) => setPost(p => ({ ...p, imageUrl: result })));
         }
     };
-    
-    const execCmd = (command: string, value?: string) => {
-        document.execCommand(command, false, value);
-        editorRef.current?.focus();
-    };
-    
-    const handleInlineImageUpload = () => fileInputRef.current?.click();
 
-    const onInlineImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileRead(e.target.files[0], (result) => {
-                execCmd('insertImage', result);
-            });
-            e.target.value = ''; // Reset file input
+    const imageHandler = useCallback(async () => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+    
+        input.onchange = async () => {
+            if (input.files) {
+                const file = input.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `content-${Date.now()}.${fileExt}`;
+                const filePath = `blog-content/${fileName}`;
+    
+                const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
+    
+                if (uploadError) {
+                    console.error('Error uploading inline image:', uploadError);
+                    alert("Image upload failed. Please try again.");
+                    return;
+                }
+    
+                const { data } = supabase.storage.from('images').getPublicUrl(filePath);
+                const imageUrl = data.publicUrl;
+    
+                const quill = quillRef.current.getEditor();
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'image', imageUrl);
+                quill.setSelection(range.index + 1);
+            }
+        };
+    }, []);
+
+    const modules = useMemo(() => ({
+        toolbar: {
+            container: [
+                ['bold', 'italic'],
+                [{'list': 'bullet'}],
+                ['link', 'image'],
+            ],
+            handlers: {
+                image: imageHandler,
+            }
         }
-    };
+    }), [imageHandler]);
 
+    const formats = ['bold', 'italic', 'list', 'bullet', 'link', 'image'];
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isEditMode) updateBlogPost({ ...post, id, views: blogPosts.find(p=>p.id===id)?.views || 0 });
@@ -1113,15 +1134,15 @@ export const AdminBlogEditor: React.FC = () => {
                     </div>
                     <div>
                         <label className="form-label-light block mb-2">Content</label>
-                        <div className="admin-rte-toolbar">
-                            <button type="button" onClick={() => execCmd('bold')} title="Bold"><b>B</b></button>
-                            <button type="button" onClick={() => execCmd('italic')} title="Italic"><i>I</i></button>
-                            <button type="button" onClick={() => execCmd('insertUnorderedList')} title="Bullet List">&bull;</button>
-                            <button type="button" onClick={() => { const url = prompt('Enter the URL'); if (url) execCmd('createLink', url); }} title="Link">🔗</button>
-                            <button type="button" onClick={handleInlineImageUpload} title="Insert Image">🖼️</button>
-                        </div>
-                        <div ref={editorRef} contentEditable="true" onInput={handleContentChange} className="admin-rte-content"/>
-                        <input type="file" accept="image/*" ref={fileInputRef} onChange={onInlineImageFileChange} className="hidden" />
+                        <ReactQuill
+                            ref={quillRef}
+                            theme="snow"
+                            value={post.content || ''}
+                            onChange={handleContentChange}
+                            modules={modules}
+                            formats={formats}
+                            className="admin-rte-container"
+                        />
                     </div>
                 </div>
 

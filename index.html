@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&family=Vina+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-quill@2.0.0/dist/quill.snow.css" />
     <style type="text/css">
       /* 1. Preflight - A simple reset based on Tailwind's principles */
       *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb; }
@@ -186,16 +187,14 @@
       .blog-meta { display: flex; align-items: center; gap: 1rem; color: #9ca3af; font-size: 0.875rem; }
       .blog-meta-dot { width: 4px; height: 4px; background-color: #9ca3af; border-radius: 50%; }
       
-      /* Admin Rich Text Editor */
-      .admin-rte-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; background-color: #e9ecef; border: 1px solid #ced4da; border-bottom: none; padding: 0.5rem; border-top-left-radius: 0.375rem; border-top-right-radius: 0.375rem; }
-      .admin-rte-toolbar button { background-color: #fff; border: 1px solid #ced4da; border-radius: 0.25rem; width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color 0.2s ease; }
-      .admin-rte-toolbar button:hover { background-color: #f8f9fa; }
-      .admin-rte-toolbar button.active { background-color: #007bff; color: white; border-color: #007bff; }
-      .admin-rte-content { min-height: 400px; background-color: #fff; color: #212529; border: 1px solid #ced4da; border-radius: 0.375rem; padding: 1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease; width: 100%; border-top-left-radius: 0; border-top-right-radius: 0; }
-      .admin-rte-content:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); }
-      .admin-rte-content img { max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 1rem; margin-bottom: 1rem; }
-      .admin-rte-content ul { list-style: disc; padding-left: 1.5rem; }
-      .admin-rte-content li { margin-bottom: 0.5rem; }
+      /* Admin Rich Text Editor (Quill) */
+      .admin-rte-container .ql-toolbar { background-color: #e9ecef; border-top-left-radius: 0.375rem; border-top-right-radius: 0.375rem; border-color: #ced4da; border-bottom: none; }
+      .admin-rte-container .ql-container { border-bottom-left-radius: 0.375rem; border-bottom-right-radius: 0.375rem; border-color: #ced4da; background-color: #fff; color: #212529; }
+      .admin-rte-container .ql-editor { min-height: 400px; font-family: var(--font-sans); }
+      .admin-rte-container .ql-editor a { color: #007bff; text-decoration: underline; }
+      .admin-rte-container .ql-editor ul { list-style: disc; padding-left: 1.5rem; }
+      .admin-rte-container .ql-editor li { margin-bottom: 0.5rem; }
+      .admin-rte-container .ql-editor img { max-width: 100%; height: auto; border-radius: 0.5rem; margin-top: 1rem; margin-bottom: 1rem; }
 
       /* Admin Light Theme */
       .admin-light-theme { background-color: #f8f9fa; color: #212529; }
@@ -248,11 +247,13 @@
   <script type="importmap">
 {
   "imports": {
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.1",
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.24.1",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.44.4",
+    "react-quill": "https://esm.sh/react-quill@2.0.0",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.44.4"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
   }
 }
 </script>
