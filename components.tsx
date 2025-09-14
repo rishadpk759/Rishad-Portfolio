@@ -68,40 +68,62 @@ export const BottomNavBar: React.FC = () => {
     const location = useLocation();
     const isHomePage = location.pathname === '/';
     
-    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'contact-section'];
+    // Define the sections for scroll-spying on the homepage
+    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section', 'contact-section'];
     
     const activeSection = useScrollSpy(isHomePage ? sectionIds : [], { 
-        rootMargin: "-40% 0px -60% 0px"
+        threshold: 0.3 // Trigger when 30% of a section is visible
     });
 
-    const getLinkClass = (path: string, sectionId?: string) => {
-        let isActive = false;
-        if (isHomePage && sectionId) {
-            isActive = activeSection === sectionId;
-        } else {
-            isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
-        }
-        return `bottom-nav-link ${isActive ? 'active' : ''}`;
-    };
+    const links = [
+        { name: 'Home', sectionId: 'home-section-spacer', path: '/' },
+        { name: 'About', sectionId: 'about-section', path: '/about' },
+        { name: 'Work', sectionId: 'work-section', path: '/portfolio' },
+        { name: 'Service', sectionId: 'services-section', path: '/#services-section' },
+        { name: 'Contact', sectionId: 'contact-section', path: '/#contact-section' },
+    ];
     
     return (
         <nav className="bottom-nav-container animate-fadeIn">
-            <NavLink to="/" className={getLinkClass('/', 'home-section-spacer')}>Home</NavLink>
-            <NavLink to="/portfolio" className={getLinkClass('/portfolio', 'work-section')}>Work</NavLink>
-            <NavLink to="/about" className={getLinkClass('/about', 'about-section')}>About</NavLink>
-            <NavLink to="/#contact-section" className={`${getLinkClass('/#contact-section', 'contact-section')} contact-btn`}
-              onClick={(e) => {
+            {links.map(({ name, sectionId, path }) => {
+                // Determine if the link is active
+                const isActive = isHomePage 
+                    // On the homepage, active state is driven by the scroll spy
+                    ? activeSection === sectionId 
+                    // On other pages, active state is driven by the URL path
+                    : (path !== '/' && !path.startsWith('/#') && location.pathname.startsWith(path));
+
+                // On the homepage, we use simple <a> tags with a smooth scroll behavior
                 if (isHomePage) {
-                  e.preventDefault();
-                  document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  // This is a bit of a hack to navigate and then scroll.
-                  window.location.hash = '#contact-section';
+                    return (
+                        <a
+                            key={name}
+                            href={`#${sectionId}`}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+                        >
+                            {name}
+                        </a>
+                    );
+                } 
+                
+                // On other pages, we use NavLink for proper routing
+                else {
+                    const toPath = path.startsWith('/#') ? `/${path.substring(2)}` : path;
+                    return (
+                         <NavLink
+                            key={name}
+                            to={toPath}
+                            className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+                         >
+                             {name}
+                         </NavLink>
+                    );
                 }
-              }}
-            >
-              Contact
-            </NavLink>
+            })}
         </nav>
     );
 };
@@ -113,7 +135,7 @@ export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
             <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
             <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-4">
                  <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="font-display text-xl text-white font-bold">{project.title}</h3>
+                    <h3 className="font-sans text-xl text-white font-bold">{project.title}</h3>
                     <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
                 </div>
             </div>
@@ -123,7 +145,7 @@ export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
 
 export const BlogCard: React.FC<{ post: BlogPost }> = ({ post }) => (
     <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg p-6 transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-1">
-        <h3 className="font-display text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
+        <h3 className="font-sans text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
         <p className="text-xs text-gray-500 mt-1">{post.date} by {post.author}</p>
         <p className="text-gray-400 mt-4">{post.excerpt}</p>
         <div className="flex items-center mt-6 text-brand-cyan text-sm font-semibold">
@@ -160,7 +182,7 @@ export const CreativeImageFrame: React.FC<{ imageUrl: string }> = ({ imageUrl })
 
 export const AdminSidebar: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
     <div className="w-64 bg-dark-card border-r border-dark-border flex flex-col p-4">
-        <h1 className="font-display text-2xl font-bold tracking-widest text-white text-center py-4">AURA_ADMIN</h1>
+        <h1 className="font-sans text-2xl font-bold tracking-widest text-white text-center py-4">AURA_ADMIN</h1>
         <nav className="flex-grow mt-8 space-y-2">
             <AdminNavLink to="/admin">Dashboard</AdminNavLink>
             <AdminNavLink to="/admin/portfolio">Portfolio</AdminNavLink>
@@ -211,7 +233,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { 
 
 export const PageTitle: React.FC<{ children: React.ReactNode; subtitle?: string }> = ({ children, subtitle }) => (
     <div className="mb-8">
-        <h1 className="font-display text-4xl font-bold text-white">{children}</h1>
+        <h1 className="font-sans text-4xl font-bold text-white">{children}</h1>
         {subtitle && <p className="text-gray-400 mt-1">{subtitle}</p>}
     </div>
 );

@@ -1,4 +1,6 @@
 
+export type ProjectCategory = 'Branding' | 'UI/UX' | 'Marketing & Creatives';
+
 export interface Project {
     id: string;
     title: string;
@@ -7,6 +9,7 @@ export interface Project {
     images: string[];
     isFeatured: boolean;
     thumbnail: string;
+    category: ProjectCategory;
 }
 
 export interface BlogPost {

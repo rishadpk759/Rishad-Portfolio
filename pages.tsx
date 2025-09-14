@@ -1,8 +1,9 @@
-/*eslint-env browser*/
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate } from 'react-router-dom';
 import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, Input, Textarea, Button, AnimatedText, CreativeImageFrame } from './components';
+import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
+import { ProjectCategory } from './types';
 
 // LAYOUTS
 export const PublicLayout: React.FC = () => (
@@ -42,121 +43,193 @@ export const AdminLayout: React.FC = () => {
 export const HomePage: React.FC = () => {
     const { projects, settings } = useData();
     
-    // Ref for the About Me section to trigger its animation
     const aboutSectionRef = useRef<HTMLDivElement>(null);
     const [aboutAnimationProgress, setAboutAnimationProgress] = useState(0);
 
-    // Refs for the horizontal scroll effect
     const workContainerRef = useRef<HTMLDivElement>(null);
     const horizontalTrackRef = useRef<HTMLDivElement>(null);
+    
+    const [activeServiceIndex, setActiveServiceIndex] = useState(0);
+    const [serviceTextTranslateY, setServiceTextTranslateY] = useState(0);
+    const servicesContainerRef = useRef<HTMLDivElement>(null);
 
-    // Intersection Observer for About Me text animation
+    const ROLES = [
+        "Creative Designer",
+        "UI/UX Designer",
+        "Branding Specialist",
+        "Visual Storyteller",
+        "Design Strategist"
+    ];
+    const [roleIndex, setRoleIndex] = useState(0);
+    const [displayedRole, setDisplayedRole] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    // Animate progress from 0 to 1 over 1.5 seconds
-                    let startTime: number | null = null;
-                    const duration = 1500;
-                    const animate = (currentTime: number) => {
-                        if (startTime === null) startTime = currentTime;
-                        const elapsedTime = currentTime - startTime;
-                        const progress = Math.min(elapsedTime / duration, 1);
-                        setAboutAnimationProgress(progress);
-                        if (progress < 1) {
-                            requestAnimationFrame(animate);
-                        }
-                    };
-                    requestAnimationFrame(animate);
-                    observer.disconnect(); // Animate only once
+        const typingSpeed = 10;
+        const deletingSpeed = 5;
+        const pauseDuration = 1500;
+        let timeoutId: number;
+        const handleTyping = () => {
+            const currentRole = ROLES[roleIndex];
+            if (isDeleting) {
+                if (displayedRole.length > 0) {
+                    setDisplayedRole(currentRole.substring(0, displayedRole.length - 1));
+                    timeoutId = window.setTimeout(handleTyping, deletingSpeed);
+                } else {
+                    setIsDeleting(false);
+                    setRoleIndex((prevIndex) => (prevIndex + 1) % ROLES.length);
                 }
-            },
-            { threshold: 0.5 } // Trigger when 50% of the section is visible
-        );
+            } else {
+                if (displayedRole.length < currentRole.length) {
+                    setDisplayedRole(currentRole.substring(0, displayedRole.length + 1));
+                    timeoutId = window.setTimeout(handleTyping, typingSpeed);
+                } else {
+                    timeoutId = window.setTimeout(() => setIsDeleting(true), pauseDuration);
+                }
+            }
+        };
+        timeoutId = window.setTimeout(handleTyping, displayedRole.length > 0 ? typingSpeed : 500);
+        return () => window.clearTimeout(timeoutId);
+    }, [displayedRole, isDeleting, roleIndex]);
 
-        if (aboutSectionRef.current) {
-            observer.observe(aboutSectionRef.current);
-        }
-
-        return () => observer.disconnect();
+    useEffect(() => {
+        const aboutSection = aboutSectionRef.current;
+        if (!aboutSection) return;
+        const handleScroll = () => {
+            const sectionTop = aboutSection.offsetTop;
+            const scrollY = window.scrollY;
+            const viewportHeight = window.innerHeight;
+            if (scrollY >= sectionTop && scrollY <= sectionTop + viewportHeight) {
+                const scrollInPin = scrollY - sectionTop;
+                const startBuffer = viewportHeight * 0.5;
+                const animationDuration = viewportHeight * 0.5;
+                const effectiveScroll = scrollInPin - startBuffer;
+                const linearProgress = Math.min(1, Math.max(0, effectiveScroll / animationDuration));
+                const easeInOut = (t: number) => t * t * (3 - 2 * t);
+                const easedProgress = easeInOut(linearProgress);
+                setAboutAnimationProgress(easedProgress);
+            } else if (scrollY < sectionTop) {
+                setAboutAnimationProgress(0);
+            } else {
+                setAboutAnimationProgress(1);
+            }
+        };
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Effect for the horizontal scroll gallery
     useEffect(() => {
         const container = workContainerRef.current;
         const track = horizontalTrackRef.current;
-
         if (!container || !track) return;
-
+        const animationData = { containerHeight: 0, maxScroll: 0 };
         const handleScroll = () => {
+            const { containerHeight, maxScroll } = animationData;
+            if (maxScroll <= 0) return;
+            const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
+            if (!firstItem) return;
+            const viewportWidth = window.innerWidth;
+            const firstItemWidth = firstItem.offsetWidth;
+            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft);
+            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
+            const initialTransformX = centerOffset - trackPaddingLeft;
+            const containerTop = container.offsetTop;
+            const currentScrollY = window.scrollY;
+            const scrollInContainer = currentScrollY - containerTop;
+            const pinDuration = containerHeight - window.innerHeight;
+            const bufferZone = pinDuration * (2 / 3);
+            const animationZone = pinDuration - bufferZone;
+            if (scrollInContainer < bufferZone) {
+                track.style.transform = `translateX(${initialTransformX}px)`;
+            } else if (scrollInContainer >= pinDuration) {
+                track.style.transform = `translateX(${initialTransformX - maxScroll}px)`;
+            } else {
+                const progress = Math.max(0, Math.min(1, (scrollInContainer - bufferZone) / animationZone));
+                const currentTransformX = initialTransformX - (progress * maxScroll);
+                track.style.transform = `translateX(${currentTransformX}px)`;
+            }
+        };
+        const setupAndResizeHandler = () => {
+            if (!container || !track) return;
             const wrapper = track.parentElement;
             if (!wrapper) return;
-
-            // --- MEASUREMENTS ---
-            const containerTop = container.offsetTop;
-            const viewportHeight = window.innerHeight;
-            const currentScrollY = window.scrollY;
-            
-            // The total distance the track can be scrolled horizontally
             const maxScroll = track.scrollWidth - wrapper.clientWidth;
-
-            // --- DEFINE THE ANIMATION WINDOW ---
-            // The animation should not start immediately. It should wait until the user has
-            // scrolled one full viewport height while the section is sticky. This creates
-            // the "magic moment" where a static section becomes interactive.
-            const scrollStartOffset = viewportHeight;
-
-            // The animation will happen over a specific scroll distance.
-            // Let's make it complete over 2 viewport heights of vertical scroll.
-            const animationDistance = viewportHeight * 2;
-
-            // Calculate the precise scrollY values for the start and end of the animation.
-            const animationStartPoint = containerTop + scrollStartOffset;
-            const animationEndPoint = animationStartPoint + animationDistance;
-            
-            // --- APPLY TRANSFORM BASED ON SCROLL POSITION ---
-            
-            // 1. Before the animation window: Pin the gallery at the start (translateX(0)).
-            // This covers the initial view when the user first sees the section, making it look static.
-            if (currentScrollY < animationStartPoint) {
-                track.style.transform = 'translateX(0px)';
-                return;
-            }
-
-            // 2. After the animation window: Pin the gallery at the end.
-            // This ensures it stays at the end once the horizontal scroll is complete, before the next section appears.
-            if (currentScrollY > animationEndPoint) {
-                track.style.transform = `translateX(${-maxScroll}px)`;
-                return;
-            }
-
-            // 3. Inside the animation window: Calculate the progress and apply the transform.
-            const scrollWithinAnimation = currentScrollY - animationStartPoint;
-            const progress = scrollWithinAnimation / animationDistance; // Progress from 0 to 1
-            const transformX = -progress * maxScroll;
-
-            track.style.transform = `translateX(${transformX}px)`;
-        };
-        
-        const onResize = () => {
+            animationData.maxScroll = maxScroll > 0 ? maxScroll : 0;
+            const newContainerHeight = window.innerHeight + (maxScroll > 0 ? maxScroll : 0);
+            container.style.height = `${newContainerHeight}px`;
+            animationData.containerHeight = newContainerHeight;
             handleScroll();
-        }
-
+        };
+        const resizeObserver = new ResizeObserver(setupAndResizeHandler);
+        resizeObserver.observe(track);
         window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', onResize, { passive: true });
-
-        // Set initial position on load
-        handleScroll();
-
         return () => {
+            resizeObserver.disconnect();
             window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('resize', onResize);
-        }
+        };
+    }, []);
+    
+    useEffect(() => {
+        const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section');
+        const handleMouseMove = (e: MouseEvent) => {
+          const target = e.currentTarget as HTMLElement;
+          const rect = target.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          target.style.setProperty('--cursor-x', `${x}px`);
+          target.style.setProperty('--cursor-y', `${y}px`);
+        };
+        interactiveItems.forEach(item => {
+          item.addEventListener('mousemove', handleMouseMove as EventListener);
+        });
+        return () => {
+          interactiveItems.forEach(item => {
+            item.removeEventListener('mousemove', handleMouseMove as EventListener);
+          });
+        };
+    }, [projects]);
+      
+    useEffect(() => {
+        const container = servicesContainerRef.current;
+        if (!container) return;
+        const handleScroll = () => {
+            const containerTop = container.offsetTop;
+            const containerHeight = container.offsetHeight;
+            const viewportHeight = window.innerHeight;
+            const scrollY = window.scrollY;
+            const stickyStart = containerTop;
+            const stickyEnd = containerTop + containerHeight - viewportHeight;
+            if (scrollY >= stickyStart && scrollY <= stickyEnd) {
+                const scrollInContainer = scrollY - stickyStart;
+                setServiceTextTranslateY(scrollInContainer);
+                const index = Math.floor((scrollInContainer + viewportHeight / 2) / viewportHeight);
+                const newActiveIndex = Math.max(0, Math.min(index, SERVICES.length - 1));
+                const invertedIndex = SERVICES.length - 1 - newActiveIndex;
+                setActiveServiceIndex(prevIndex => prevIndex !== invertedIndex ? invertedIndex : prevIndex);
+            } else if (scrollY < stickyStart) {
+                setServiceTextTranslateY(0);
+                setActiveServiceIndex(SERVICES.length - 1);
+            } else {
+                setServiceTextTranslateY(containerHeight - viewportHeight);
+                setActiveServiceIndex(0);
+            }
+        };
+        const timeoutId = setTimeout(() => {
+            handleScroll();
+            window.addEventListener('scroll', handleScroll, { passive: true });
+        }, 100);
+        const resizeHandler = () => handleScroll();
+        window.addEventListener('resize', resizeHandler);
+        return () => {
+            clearTimeout(timeoutId);
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', resizeHandler);
+        };
     }, []);
 
     return (
         <div className="relative">
-             {/* 1. Fixed Hero Content (background layer) */}
             <div id="home-section" className="fixed top-0 left-0 w-full h-screen z-0 flex items-end justify-center bg-black text-white overflow-hidden animate-fadeIn">
                 <h1 className="hero-text-bg absolute z-0 font-display top-0 pt-16">
                     RISHAD PK
@@ -165,26 +238,21 @@ export const HomePage: React.FC = () => {
                     <img
                         src="https://rhamiktnjbxwcryluvof.supabase.co/storage/v1/object/public/Cover%20Image/rishad%20pk%20site%20cover.png"
                         alt="Rishad PK"
-                        className="w-auto max-h-[85vh] object-contain select-none"
+                        className="w-auto max-h-[85vh] object-contain select-none animate-slow-zoom"
                     />
                 </div>
                 <div className="absolute bottom-12 left-12 z-20 text-left max-w-sm">
-                    <p className="font-sans text-lg text-gray-300 leading-relaxed">
-                       Models you remember.
-                       <br />
-                       Faces you can't unsee.
+                    <p className="font-sans text-xl text-gray-300 leading-relaxed h-8">
+                       {displayedRole}
+                       <span className="typing-cursor"></span>
                     </p>
                 </div>
             </div>
             
-            {/* 2. Scrollable Content (foreground layer) */}
             <div className="relative z-10">
-                {/* Spacer div to push content below the hero */}
                 <div id="home-section-spacer" className="h-screen" />
 
-                {/* Wrapper for sticky sections */}
                 <div className="relative">
-                    {/* Section 2: About Me (Sticky) */}
                     <section id="about-section" ref={aboutSectionRef} className="h-screen sticky top-0 bg-white text-black flex items-center py-20 z-10">
                         <div className="container mx-auto px-6">
                             <div className="grid grid-cols-1 md:grid-cols-10 gap-12 items-center">
@@ -207,23 +275,26 @@ export const HomePage: React.FC = () => {
                         </div>
                     </section>
                     
-                    {/* Section 3: Work Preview (Scrolls over About) */}
                     <section id="work-section" className="relative z-20 bg-dark-bg">
-                        {/* Tall container to define the scroll duration for the horizontal effect */}
-                        <div ref={workContainerRef} className="h-[400vh] relative">
-                             {/* Sticky content that stays in view while the tall container is scrolled */}
+                        <div ref={workContainerRef} className="relative">
                             <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden">
-                                <div className="container mx-auto px-6 mb-12">
-                                     <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
+                                <div className="container mx-auto px-6 mb-8 flex justify-between items-end">
+                                    <div>
+                                        <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
+                                        <h2 className="font-sans text-4xl text-white font-light">Work Highlights</h2>
+                                    </div>
+                                    <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold hidden md:inline-block">
+                                        View All Works →
+                                    </Link>
                                 </div>
                                 <div className="horizontal-scroll-wrapper">
                                     <div ref={horizontalTrackRef} className="horizontal-scroll-track">
                                         {projects.map(project => (
-                                            <Link to={`/portfolio/${project.id}`} key={project.id} className="work-gallery-item group block relative">
+                                            <Link to="/portfolio" key={project.id} className="work-gallery-item group block relative">
                                                 <img src={project.thumbnail} alt={project.title} />
                                                 <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-6">
                                                      <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                                                        <h3 className="font-display text-2xl text-white font-bold">{project.title}</h3>
+                                                        <h3 className="font-sans text-2xl text-white font-bold">{project.title}</h3>
                                                         <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
                                                     </div>
                                                 </div>
@@ -236,13 +307,57 @@ export const HomePage: React.FC = () => {
                     </section>
                 </div>
                 
-                {/* Section 4: Contact */}
-                <section id="contact-section" className="py-20 bg-dark-bg relative z-30">
-                    <div className="container mx-auto px-6 text-center max-w-2xl">
-                         <h2 className="font-display text-4xl font-bold text-white mb-4">Get In Touch</h2>
-                         <p className="text-gray-400 mb-8">Have a project in mind or just want to say hello? I'd love to hear from you.</p>
-                         <ContactForm />
+                <section id="services-section" className="relative z-30 bg-white text-black">
+                    <div ref={servicesContainerRef} className="services-container">
+                        <div className="services-sticky-wrapper">
+                            <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                                <div className="h-full overflow-hidden">
+                                    <div style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
+                                        {SERVICES.map((service, index) => (
+                                            <div key={index} data-index={index} className="service-text-item">
+                                                <div className="max-w-md">
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                        <div className="h-[1px] w-16 bg-gray-300"></div>
+                                                    </div>
+                                                    <h3 className="font-sans text-4xl font-bold mb-4 text-black">{service.title}</h3>
+                                                    <p className="text-gray-600 mb-6">{service.description}</p>
+                                                    <ul className="service-points-list">
+                                                        {service.points.map((point, pointIndex) => (
+                                                            <li key={pointIndex} className="service-point-item">
+                                                                {point}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="h-full flex items-center justify-center">
+                                    <div className="service-image-container">
+                                        {SERVICES.map((service, index) => (
+                                            <img
+                                                key={index}
+                                                src={service.imageUrl}
+                                                alt={service.title}
+                                                className={`service-image ${activeServiceIndex === index ? 'active' : ''}`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </section>
+
+                <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-hidden">
+                    <a href={`mailto:${settings.contact.email}`} className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
+                        <h2 className="hero-text-bg whitespace-normal" dangerouslySetInnerHTML={{ __html: 'FUEL ME WITH <br /> COFFEE' }} />
+                        <p className="font-sans text-xl md:text-3xl text-gray-400 mt-8">
+                            And I’ll fuel your brand with design.
+                        </p>
+                    </a>
                 </section>
             </div>
         </div>
@@ -251,11 +366,127 @@ export const HomePage: React.FC = () => {
 
 export const PortfolioPage: React.FC = () => {
     const { projects } = useData();
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
+    
+    const filteredProjects = projects.filter(p => selectedCategory === 'All' || p.category === selectedCategory);
+
+    const animationData = useRef({
+        wrapperHeight: 0,
+        maxScroll: 0,
+    }).current;
+    
+    useEffect(() => {
+        const wrapper = wrapperRef.current;
+        const track = trackRef.current;
+        if (!wrapper || !track) return;
+        
+        const handleScroll = () => {
+            const { wrapperHeight, maxScroll } = animationData;
+            if (maxScroll <= 0) return;
+
+            const wrapperTop = wrapper.offsetTop;
+            const currentScrollY = window.scrollY;
+            const scrollInWrapper = currentScrollY - wrapperTop;
+
+            if (scrollInWrapper < 0) {
+                if (trackRef.current) trackRef.current.style.transform = `translateX(0px)`;
+                if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', '0');
+                return;
+            }
+
+            const pinDuration = wrapperHeight - window.innerHeight;
+            if (pinDuration <= 0) return;
+
+            const progress = Math.max(0, Math.min(1, scrollInWrapper / pinDuration));
+            if (trackRef.current) trackRef.current.style.transform = `translateX(-${progress * maxScroll}px)`;
+            if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${progress}`);
+        };
+
+        const setupAndResizeHandler = () => {
+            if (!wrapper || !track) return;
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            animationData.maxScroll = Math.max(0, maxScroll);
+            const newHeight = window.innerHeight + animationData.maxScroll;
+            wrapper.style.height = `${newHeight}px`;
+            animationData.wrapperHeight = newHeight;
+            handleScroll(); // Recalculate on resize
+        };
+
+        const resizeObserver = new ResizeObserver(setupAndResizeHandler);
+        resizeObserver.observe(track);
+        
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        
+        // Initial setup
+        setupAndResizeHandler();
+        
+        return () => {
+            resizeObserver.disconnect();
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [filteredProjects, animationData]);
+
+    useEffect(() => {
+        const interactiveItems = document.querySelectorAll('.portfolio-gallery-item');
+        const handleMouseMove = (e: MouseEvent) => {
+          const target = e.currentTarget as HTMLElement;
+          const rect = target.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          target.style.setProperty('--cursor-x', `${x}px`);
+          target.style.setProperty('--cursor-y', `${y}px`);
+        };
+        interactiveItems.forEach(item => {
+          item.addEventListener('mousemove', handleMouseMove as EventListener);
+        });
+        return () => {
+          interactiveItems.forEach(item => {
+            item.removeEventListener('mousemove', handleMouseMove as EventListener);
+          });
+        };
+    }, [filteredProjects]);
+
     return (
-        <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16 min-h-screen">
-            <h1 className="font-display text-5xl font-bold text-center mb-12 text-white">Our Work</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {projects.map(project => <ProjectCard key={project.id} project={project} />)}
+        <div ref={wrapperRef} className="portfolio-page-wrapper animate-fadeIn">
+            <div className="portfolio-sticky-container">
+                <div className="container mx-auto px-6 pt-20 flex-shrink-0">
+                    <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(03) PORTFOLIO</p>
+                    <h1 className="font-sans text-5xl font-bold text-white">Selected Works</h1>
+                    <div className="category-filters">
+                        {PORTFOLIO_CATEGORIES.map(category => (
+                            <button
+                                key={category}
+                                onClick={() => setSelectedCategory(category)}
+                                className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}
+                            >
+                                {category}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                
+                <div className="portfolio-gallery-container">
+                    <div ref={trackRef} className="portfolio-gallery-track">
+                        {filteredProjects.map(project => (
+                            <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative">
+                                <img src={project.thumbnail} alt={project.title} />
+                                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-6">
+                                    <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
+                                        <h3 className="font-sans text-2xl text-white font-bold">{project.title}</h3>
+                                        <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+                <div className="portfolio-progress-bar-container">
+                    <div ref={progressBarRef} className="portfolio-progress-bar"></div>
+                </div>
             </div>
         </div>
     );
@@ -269,33 +500,53 @@ export const ProjectDetailPage: React.FC = () => {
     if (!project) return <div className="container mx-auto px-6 py-12 pt-16">Project not found.</div>;
 
     return (
-        <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
-            <div className="text-center mb-12">
-                <h1 className="font-display text-5xl font-bold text-white">{project.title}</h1>
-                <p className="text-xl text-gray-400 mt-2">{project.client}</p>
+        <>
+            <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
+                <div className="text-center mb-12">
+                    <h1 className="font-sans text-5xl font-bold text-white">{project.title}</h1>
+                    <p className="text-xl text-gray-400 mt-2">{project.client}</p>
+                </div>
+                <div className="mb-12">
+                    {project.images.map((img, index) => (
+                        <img key={index} src={img} alt={`${project.title} - view ${index + 1}`} className="project-detail-image" />
+                    ))}
+                </div>
+                <div className="max-w-3xl mx-auto">
+                    <h2 className="font-sans text-3xl font-bold text-white mb-4">Project Description</h2>
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+                </div>
             </div>
-            <div className="mb-12">
-                {project.images.map((img, index) => (
-                    <img key={index} src={img} alt={`${project.title} - view ${index + 1}`} className="w-full h-auto object-cover rounded-lg mb-8 shadow-lg" />
-                ))}
-            </div>
-            <div className="max-w-3xl mx-auto">
-                <h2 className="font-display text-3xl font-bold text-white mb-4">Project Description</h2>
-                <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
-            </div>
-        </div>
+            
+            <section className="project-cta-section py-20">
+                <div className="container mx-auto px-6 text-center max-w-2xl">
+                    <h2 className="font-sans text-3xl md:text-4xl text-white font-light mb-6">
+                        Do you need something like this?
+                        <br />
+                        Just say hi, and let’s get started.
+                    </h2>
+                    <Link to="/#contact-section" className="project-cta-button inline-block">
+                        Contact Now
+                    </Link>
+                </div>
+            </section>
+
+            <div className="h-32" />
+        </>
     );
 };
 
 export const BlogPage: React.FC = () => {
     const { blogPosts } = useData();
     return (
-        <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16 min-h-screen">
-            <h1 className="font-display text-5xl font-bold text-center mb-12 text-white">From the Blog</h1>
-            <div className="max-w-3xl mx-auto space-y-8">
-                {blogPosts.map(post => <BlogCard key={post.id} post={post} />)}
+        <>
+            <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16 min-h-screen">
+                <h1 className="font-sans text-5xl font-bold text-center mb-12 text-white">From the Blog</h1>
+                <div className="max-w-3xl mx-auto space-y-8">
+                    {blogPosts.map(post => <BlogCard key={post.id} post={post} />)}
+                </div>
             </div>
-        </div>
+            <div className="h-32" />
+        </>
     );
 };
 
@@ -307,16 +558,19 @@ export const BlogPostPage: React.FC = () => {
     if (!post) return <div className="container mx-auto px-6 py-12 pt-16">Post not found.</div>;
 
     return (
-        <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
-            <div className="max-w-3xl mx-auto">
-                <h1 className="font-display text-5xl font-bold text-white leading-tight">{post.title}</h1>
-                <p className="text-gray-500 mt-4">{post.date} by {post.author}</p>
-                <img src={post.imageUrl} alt={post.title} className="w-full h-auto object-cover rounded-lg my-8 shadow-lg" />
-                <div className="prose prose-invert prose-lg text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {post.content}
+        <>
+            <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
+                <div className="max-w-3xl mx-auto">
+                    <h1 className="font-sans text-5xl font-bold text-white leading-tight">{post.title}</h1>
+                    <p className="text-gray-500 mt-4">{post.date} by {post.author}</p>
+                    <img src={post.imageUrl} alt={post.title} className="w-full h-auto object-cover rounded-lg my-8 shadow-lg" />
+                    <div className="prose prose-invert prose-lg text-gray-300 leading-relaxed whitespace-pre-wrap">
+                        {post.content}
+                    </div>
                 </div>
             </div>
-        </div>
+            <div className="h-32" />
+        </>
     );
 };
 
@@ -324,19 +578,52 @@ export const AboutPage: React.FC = () => {
     const { settings } = useData();
 
     return (
-        <section className="bg-white min-h-screen flex items-center">
-            <div className="container mx-auto px-6 py-20 animate-fadeIn">
-                <div className="grid grid-cols-1 md:grid-cols-10 gap-12 items-center">
-                    <div className="w-full max-w-sm mx-auto md:col-span-3">
-                        <CreativeImageFrame imageUrl={settings.about.photo} />
-                    </div>
-                    <div className="md:col-span-7">
-                         <h1 className="font-display text-5xl font-bold text-black mb-6">About Me</h1>
-                         <p className="text-black text-lg leading-spacious whitespace-pre-wrap">{settings.about.bio}</p>
+        <>
+            <section className="bg-white min-h-screen flex items-center py-20">
+                <div className="container mx-auto px-6 animate-fadeIn">
+                    <div className="grid grid-cols-1 md:grid-cols-10 gap-12 items-center">
+                        <div className="w-full max-w-sm mx-auto md:col-span-3">
+                            <CreativeImageFrame imageUrl={settings.about.photo} />
+                        </div>
+                        <div className="md:col-span-7">
+                             <h1 className="font-sans text-5xl font-bold text-black mb-6">About Me</h1>
+                             <p className="text-black text-lg leading-spacious whitespace-pre-wrap">{settings.about.bio}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+            
+            <section className="bg-dark-bg py-20">
+                <div className="container mx-auto px-6">
+                    <h2 className="font-sans text-4xl font-bold text-white text-center mb-12">Work History</h2>
+                    <div className="timeline-container">
+                        {WORK_HISTORY.map((job, index) => (
+                            <div key={index} className="timeline-item">
+                                <p className="timeline-years">{job.years}</p>
+                                <h3 className="timeline-title">{job.title}</h3>
+                                <p className="timeline-company">{job.company}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+            
+            <section className="facts-section py-20">
+                <div className="container mx-auto px-6">
+                    <h2 className="font-sans text-4xl font-bold text-black text-center mb-12">By the Numbers</h2>
+                    <div className="facts-grid">
+                        {FACTS.map((fact, index) => (
+                            <div key={index} className="fact-card">
+                                <p className="fact-number">{fact.number}</p>
+                                <p className="fact-text">{fact.text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            <div className="h-32" />
+        </>
     );
 };
 
@@ -350,7 +637,6 @@ export const AdminLoginPage: React.FC = () => {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        // Simple hardcoded password check
         if (password === 'admin') {
             login();
             navigate('/admin');
@@ -362,7 +648,7 @@ export const AdminLoginPage: React.FC = () => {
     return (
         <div className="h-screen flex items-center justify-center bg-dark-bg">
             <div className="w-full max-w-sm p-8 bg-dark-card border border-dark-border rounded-lg shadow-2xl shadow-brand-cyan/10">
-                <h1 className="font-display text-3xl font-bold tracking-widest text-white text-center">AURA_ADMIN</h1>
+                <h1 className="font-sans text-3xl font-bold tracking-widest text-white text-center">AURA_ADMIN</h1>
                 <form onSubmit={handleLogin} className="mt-8 space-y-6">
                     <div>
                         <label className="text-sm font-bold text-gray-400 block mb-2">Password</label>
@@ -395,7 +681,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
             </div>
             <div className="mt-12">
-                <h2 className="font-display text-2xl font-bold text-white mb-4">Quick Links</h2>
+                <h2 className="font-sans text-2xl font-bold text-white mb-4">Quick Links</h2>
                  <div className="flex flex-wrap gap-4">
                     <Link to="/admin/portfolio"><Button>Manage Portfolio</Button></Link>
                     <Link to="/admin/blog"><Button>Manage Blog</Button></Link>
@@ -408,14 +694,14 @@ export const AdminDashboardPage: React.FC = () => {
 
 export const AdminPortfolioManager: React.FC = () => {
     const { projects, addProject, deleteProject, setFeaturedProject } = useData();
-    // Simplified form state for this example
     const [title, setTitle] = useState('');
     const [client, setClient] = useState('');
+    const [category, setCategory] = useState<ProjectCategory>('Branding');
 
     const handleAddProject = () => {
         if (!title || !client) return;
         addProject({ 
-            title, client, 
+            title, client, category,
             description: 'New project description.', 
             images: ['https://picsum.photos/seed/new-project/1920/1080'], 
             thumbnail: 'https://picsum.photos/seed/new-thumb/600/400', 
@@ -423,16 +709,26 @@ export const AdminPortfolioManager: React.FC = () => {
         });
         setTitle('');
         setClient('');
+        setCategory('Branding');
     };
 
     return (
         <div>
             <PageTitle subtitle="Add, edit, and manage your portfolio projects.">Portfolio Manager</PageTitle>
             <div className="bg-dark-card p-6 border border-dark-border rounded-lg mb-8">
-                 <h3 className="font-display text-xl text-white mb-4">Add New Project</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <h3 className="font-sans text-xl text-white mb-4">Add New Project</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                      <Input placeholder="Project Title" value={title} onChange={e => setTitle(e.target.value)} />
                      <Input placeholder="Client Name" value={client} onChange={e => setClient(e.target.value)} />
+                     <select 
+                        value={category} 
+                        onChange={e => setCategory(e.target.value as ProjectCategory)}
+                        className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 transition-colors duration-300 text-white"
+                     >
+                        <option>Branding</option>
+                        <option>UI/UX</option>
+                        <option>Marketing & Creatives</option>
+                     </select>
                      <Button onClick={handleAddProject}>Add Project</Button>
                  </div>
             </div>
@@ -443,6 +739,7 @@ export const AdminPortfolioManager: React.FC = () => {
                         <tr>
                             <th className="p-4 font-semibold">Title</th>
                             <th className="p-4 font-semibold">Client</th>
+                            <th className="p-4 font-semibold">Category</th>
                             <th className="p-4 font-semibold text-center">Featured</th>
                             <th className="p-4 font-semibold text-right">Actions</th>
                         </tr>
@@ -452,6 +749,7 @@ export const AdminPortfolioManager: React.FC = () => {
                             <tr key={p.id} className="border-t border-dark-border">
                                 <td className="p-4">{p.title}</td>
                                 <td className="p-4 text-gray-400">{p.client}</td>
+                                <td className="p-4 text-gray-400">{p.category}</td>
                                 <td className="p-4 text-center">
                                     <button onClick={() => setFeaturedProject(p.id)} className={`w-6 h-6 rounded-full ${p.isFeatured ? 'bg-brand-cyan' : 'bg-gray-600'}`} aria-label={`Set ${p.title} as featured`}></button>
                                 </td>
@@ -525,7 +823,7 @@ export const AdminSettingsPage: React.FC = () => {
             <PageTitle subtitle="Update your site's static content and contact info.">Content Settings</PageTitle>
             <div className="space-y-8">
                 <div className="bg-dark-card p-6 border border-dark-border rounded-lg">
-                    <h3 className="font-display text-xl text-white mb-4">About Section</h3>
+                    <h3 className="font-sans text-xl text-white mb-4">About Section</h3>
                     <div className="space-y-4">
                         <div>
                             <label className="text-sm font-bold text-gray-400 block mb-2">Bio</label>

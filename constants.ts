@@ -1,4 +1,96 @@
-import type { Project, BlogPost, SiteSettings } from './types';
+import type { Project, BlogPost, SiteSettings, ProjectCategory } from './types';
+
+export interface Service {
+    title: string;
+    description: string;
+    imageUrl: string;
+    points: string[];
+}
+
+export interface Experience {
+    years: string;
+    title: string;
+    company: string;
+}
+
+export interface Fact {
+    number: string;
+    text: string;
+}
+
+export const PORTFOLIO_CATEGORIES: string[] = ['All', 'Branding', 'UI/UX', 'Marketing & Creatives'];
+
+export const FACTS: Fact[] = [
+    {
+        number: '100+',
+        text: 'Brands Served',
+    },
+    {
+        number: '30+',
+        text: 'Big Projects Done',
+    },
+    {
+        number: '10+',
+        text: 'Industries Served',
+    },
+    {
+        number: '5',
+        text: 'Years of Experience',
+    },
+    {
+        number: '100%',
+        text: 'Client Satisfaction',
+    }
+];
+
+export const WORK_HISTORY: Experience[] = [
+    {
+        years: '2025 - Present',
+        title: 'Lead Designer',
+        company: 'Dhefor Trading Company, UAE',
+    },
+    {
+        years: '2024 - Present',
+        title: 'Senior Designer',
+        company: 'Infinite Trading Company, KSA',
+    },
+    {
+        years: '2023 - Present',
+        title: 'Graphic Designer',
+        company: 'Pacific TRading Company. Qatar',
+    },
+    {
+        years: '2023 - 2023',
+        title: 'Designer',
+        company: 'Thakkol Creatives, Kozhikode',
+    },
+    {
+        years: '2022 - Present',
+        title: 'Freelance Designer',
+        company: 'Global Clients',
+    },
+];
+
+export const SERVICES: Service[] = [
+    {
+        title: 'Branding & Identity',
+        description: 'Building unique brand identities that make businesses stand out and stay memorable.',
+        imageUrl: 'https://picsum.photos/seed/branding-service/800/1200',
+        points: ['Logo Design', 'Brand Guidelines', 'Visual Identity Systems']
+    },
+    {
+        title: 'UI/UX & Digital Design',
+        description: 'Designing clean, user-focused websites and digital experiences that deliver results.',
+        imageUrl: 'https://picsum.photos/seed/uiux-service/800/1200',
+        points: ['Website & App UI', 'Wireframes & Prototypes', 'Responsive Design']
+    },
+    {
+        title: 'Digital Marketing & Strategy',
+        description: 'Creating smart marketing designs and campaigns that drive growth and engagement.',
+        imageUrl: 'https://picsum.photos/seed/marketing-service/800/1200',
+        points: ['Social Media Creatives', 'Marketing Campaign Design', 'Presentation & Proposal Design']
+    }
+];
 
 export const INITIAL_PROJECTS: Project[] = [
     {
@@ -8,7 +100,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'A full branding and UI/UX design for a next-generation music streaming platform. The design focuses on a neon-noir aesthetic, creating an immersive experience for users. We developed a custom design system to ensure consistency across all platforms.',
         images: ['https://picsum.photos/seed/cyberscape1/1920/1080', 'https://picsum.photos/seed/cyberscape2/1920/1080', 'https://picsum.photos/seed/cyberscape3/1920/1080'],
         isFeatured: true,
-        thumbnail: 'https://picsum.photos/seed/cyberscape-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/cyberscape-thumb/600/400',
+        category: 'UI/UX',
     },
     {
         id: 'project-2',
@@ -17,7 +110,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'A series of futuristic ad visuals for a high-tech product launch. The campaign was rolled out across digital billboards in major cities, blending photorealism with sci-fi elements.',
         images: ['https://picsum.photos/seed/neotokyo1/1920/1080', 'https://picsum.photos/seed/neotokyo2/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/neotokyo-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/neotokyo-thumb/600/400',
+        category: 'Marketing & Creatives',
     },
     {
         id: 'project-3',
@@ -26,7 +120,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'UI/UX design for an augmented reality mobile application that allows users to explore constellations. The interface is minimal and gesture-based to not obstruct the camera view.',
         images: ['https://picsum.photos/seed/starlight1/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/starlight-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/starlight-thumb/600/400',
+        category: 'UI/UX',
     },
     {
         id: 'project-4',
@@ -35,7 +130,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'Complete brand identity for a creative agency. The logo, typography, and color palette were designed to reflect a modern, edgy, and sophisticated style.',
         images: ['https://picsum.photos/seed/aura1/1920/1080', 'https://picsum.photos/seed/aura2/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/aura-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/aura-thumb/600/400',
+        category: 'Branding',
     },
     {
         id: 'project-5',
@@ -44,7 +140,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'Marketing visuals for a quantum computer, emphasizing its power and futuristic nature through abstract particle animations and sleek hardware renders.',
         images: ['https://picsum.photos/seed/quantum1/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/quantum-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/quantum-thumb/600/400',
+        category: 'Marketing & Creatives',
     },
     {
         id: 'project-6',
@@ -53,7 +150,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'A fresh and optimistic brand identity for an environmental NGO. The design language uses organic shapes and a vibrant color palette to inspire action and hope.',
         images: ['https://picsum.photos/seed/eco1/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/eco-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/eco-thumb/600/400',
+        category: 'Branding',
     },
     {
         id: 'project-7',
@@ -62,7 +160,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'An updated branding and UI/UX design for the next phase of the music streaming platform, focusing on user-generated content and social features.',
         images: ['https://picsum.photos/seed/cyberscape-v2/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/cyberscape-v2-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/cyberscape-v2-thumb/600/400',
+        category: 'UI/UX',
     },
     {
         id: 'project-8',
@@ -71,7 +170,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'A localized version of the Neo-Tokyo ad campaign, adapted for North American markets with new visuals and messaging.',
         images: ['https://picsum.photos/seed/downtown/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/downtown-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/downtown-thumb/600/400',
+        category: 'Marketing & Creatives',
     },
     {
         id: 'project-9',
@@ -80,7 +180,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'A companion app to Starlight, this time focusing on lunar exploration and the history of space missions to the moon.',
         images: ['https://picsum.photos/seed/moonlight/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/moonlight-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/moonlight-thumb/600/400',
+        category: 'UI/UX',
     },
     {
         id: 'project-10',
@@ -89,7 +190,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'An evolution of the original brand identity, introducing motion design principles and a more dynamic color system for digital applications.',
         images: ['https://picsum.photos/seed/aurav2/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/aurav2-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/aurav2-thumb/600/400',
+        category: 'Branding',
     },
      {
         id: 'project-11',
@@ -98,7 +200,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'UI/UX for a complex data visualization dashboard, making big data accessible and understandable through interactive charts and graphs.',
         images: ['https://picsum.photos/seed/datastream/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/datastream-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/datastream-thumb/600/400',
+        category: 'UI/UX',
     },
     {
         id: 'project-12',
@@ -107,7 +210,8 @@ export const INITIAL_PROJECTS: Project[] = [
         description: 'In-game user interface design for a futuristic racing game, focusing on high-speed legibility and a HUD that feels integrated with the cockpit.',
         images: ['https://picsum.photos/seed/velocity/1920/1080'],
         isFeatured: false,
-        thumbnail: 'https://picsum.photos/seed/velocity-thumb/600/400'
+        thumbnail: 'https://picsum.photos/seed/velocity-thumb/600/400',
+        category: 'UI/UX',
     }
 ];
 

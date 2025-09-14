@@ -1,10 +1,26 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './context';
 import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout } from './pages';
 
 const App: React.FC = () => {
+    // Effect to handle the pre-loading screen
+    useEffect(() => {
+        const loader = document.getElementById('loader');
+        if (loader) {
+            // Set a minimum time for the loader to be visible
+            const timer = setTimeout(() => {
+                loader.classList.add('loader-hidden');
+                // Set display to none after the fade-out transition is complete
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500); // This duration should match the transition duration in CSS
+            }, 2500); // Minimum 2.5 seconds display time
+
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
     return (
         <DataProvider>
             <HashRouter>
