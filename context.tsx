@@ -127,28 +127,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         fetchAllData();
     }, []);
     
-    // Periodically increment random view counts (slow growth, small random increments)
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            if (blogPosts.length === 0) return;
-            // 40% chance to increment on each tick
-            if (Math.random() > 0.4) return;
-            const randomIndex = Math.floor(Math.random() * blogPosts.length);
-            const postToUpdate = blogPosts[randomIndex];
-            const randomIncrement = Math.random() < 0.7 ? 1 : 2; // mostly +1, sometimes +2
-            const newViews = (postToUpdate.views || 0) + randomIncrement;
-
-            const { error } = await supabase
-                .from('blog_posts')
-                .update({ views: newViews })
-                .eq('id', postToUpdate.id);
-
-            if (!error) {
-                setBlogPosts(prevPosts => prevPosts.map(p => p.id === postToUpdate.id ? { ...p, views: newViews } : p));
-            }
-        }, 45000); // every 45 seconds
-        return () => clearInterval(interval);
-    }, [blogPosts]);
+    // Note: Views are now incremented on actual blog post reads (see BlogPostPage)
 
 
     const login = () => setIsAuthenticated(true);

@@ -449,6 +449,32 @@ export const BlogPostPage: React.FC = () => {
     const { blogPosts } = useData();
     const post = blogPosts.find(p => p.id === id);
     if (!post) return <div className="container mx-auto px-6 py-12 pt-16">Post not found.</div>;
+    
+    useEffect(() => {
+        // Increment real view count once per device per post within a cooldown
+        const cooldownHours = 12;
+        const storageKey = `viewed_post_${post.id}`;
+        const lastViewed = localStorage.getItem(storageKey);
+        const now = Date.now();
+        const shouldIncrement = !lastViewed || (now - parseInt(lastViewed, 10)) > cooldownHours * 60 * 60 * 1000;
+        if (!shouldIncrement) return;
+
+        const increment = async () => {
+            try {
+                const { error } = await supabase
+                    .from('blog_posts')
+                    .update({ views: (post.views || 0) + 1 })
+                    .eq('id', post.id);
+                if (!error) {
+                    localStorage.setItem(storageKey, now.toString());
+                }
+            } catch (e) {
+                console.error('Failed to increment view:', e);
+            }
+        };
+        increment();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [post?.id]);
     return (
         <>
             <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
