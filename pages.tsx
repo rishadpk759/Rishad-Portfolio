@@ -420,7 +420,9 @@ export const BlogPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-center mb-12 text-white">From the Blog</h1>
                 
                 <Link to={`/blog/${latestPost.id}`} className="blog-featured-post group">
-                    <img src={latestPost.imageUrl} alt={latestPost.title} className="blog-featured-image transition-transform duration-300 group-hover:scale-105" />
+                    <div className="blog-thumb-2x1">
+                        <img src={latestPost.imageUrl} alt={latestPost.title} className="transition-transform duration-300 group-hover:scale-105" />
+                    </div>
                     <div className="flex flex-col justify-center">
                         <p className="font-display uppercase tracking-widest text-brand-cyan mb-4 text-sm">Latest Post</p>
                         <h2 className="font-sans text-4xl font-bold text-white mb-4 group-hover:text-brand-cyan transition-colors">{latestPost.title}</h2>

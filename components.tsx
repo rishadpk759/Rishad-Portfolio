@@ -132,8 +132,8 @@ export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
 
 export const BlogCard: React.FC<{ post: BlogPost }> = ({ post }) => (
     <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-1">
-        <div className="w-full h-48 rounded-t-lg overflow-hidden">
-             <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        <div className="blog-thumb-2x1 rounded-t-lg">
+            <img src={post.imageUrl} alt={post.title} className="transition-transform duration-300 group-hover:scale-105" />
         </div>
         <div className="p-6">
             <h3 className="font-sans text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
