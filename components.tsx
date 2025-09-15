@@ -9,16 +9,22 @@ const useScrollSpy = (ids: string[], options: IntersectionObserverInit) => {
     const observer = useRef<IntersectionObserver | null>(null);
 
     useEffect(() => {
-        const elements = ids.map(id => document.getElementById(id)).filter(el => el);
+        const elements = ids.map(id => document.getElementById(id)).filter(el => el) as Element[];
         if (elements.length === 0) return;
         
         observer.current?.disconnect();
         observer.current = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    setActiveId(entry.target.id);
+            // Pick the most visible entry to avoid flicker across adjacent sections
+            let topEntry: IntersectionObserverEntry | null = null;
+            for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                if (!topEntry || entry.intersectionRatio > topEntry.intersectionRatio) {
+                    topEntry = entry;
                 }
-            });
+            }
+            if (topEntry && topEntry.target && (topEntry.target as HTMLElement).id) {
+                setActiveId((topEntry.target as HTMLElement).id);
+            }
         }, options);
 
         elements.forEach(el => observer.current?.observe(el));
@@ -65,30 +71,47 @@ export const BottomNavBar: React.FC = () => {
     const location = useLocation();
     const isHomePage = location.pathname === '/';
     
-    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section'];
+    const sectionIds = ['home-section-spacer', 'about-section', 'work-section', 'services-section', 'recent-blog-section', 'contact-section'];
     
     const activeSection = useScrollSpy(isHomePage ? sectionIds : [], { 
-        threshold: 0.3
+        threshold: 0.15,
+        rootMargin: '0px 0px -40% 0px'
     });
 
+    // Order aligned with homepage sections: Home, About, Work, Service, then standalone pages
     const links = [
         { name: 'Home', path: '/', sectionId: 'home-section-spacer' },
         { name: 'About', path: '/about', sectionId: 'about-section' },
         { name: 'Work', path: '/portfolio', sectionId: 'work-section' },
-        { name: 'Blog', path: '/blog' },
-        { name: 'Service', path: '/#services-section', sectionId: 'services-section' },
-        { name: 'Contact', path: '/contact' },
+        { name: 'Service', path: '/services', sectionId: 'services-section' },
+        { name: 'Blog', path: '/blog', sectionId: 'recent-blog-section' },
+        { name: 'Contact', path: '/contact', sectionId: 'contact-section' },
     ];
     
     return (
         <nav className="bottom-nav-container animate-fadeIn">
-            {links.map((link) => {
+            <div className="bottom-nav-inner">
+                {links.map((link) => {
+                // Special-case Service: always navigate to /services, but reflect active by scroll on homepage
+                if (link.name === 'Service') {
+                    const extraActive = isHomePage && activeSection === link.sectionId;
+                    return (
+                        <NavLink
+                            key={link.name}
+                            to={link.path}
+                            className={({ isActive }) => `bottom-nav-link ${(isActive || extraActive) ? 'active' : ''}`}
+                        >
+                            {link.name}
+                        </NavLink>
+                    );
+                }
+
                 if (isHomePage && link.sectionId) {
                     const isActive = activeSection === link.sectionId;
                     return (
                         <a
                             key={link.name}
-                            href={link.path.startsWith('/#') ? `#${link.sectionId}` : link.path}
+                            href={`#${link.sectionId}`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 document.getElementById(link.sectionId!)?.scrollIntoView({ behavior: 'smooth' });
@@ -111,6 +134,7 @@ export const BottomNavBar: React.FC = () => {
                     );
                 }
             })}
+            </div>
         </nav>
     );
 };
@@ -147,6 +171,135 @@ export const BlogCard: React.FC<{ post: BlogPost }> = ({ post }) => (
     </NavLink>
 );
 
+// --- Reveal on scroll wrapper ---
+export const Reveal: React.FC<{ children: React.ReactNode; delayMs?: number; className?: string; threshold?: number; y?: number; startScale?: number }> = ({ children, delayMs = 0, className = '', threshold = 0.1, y = 16, startScale = 0.95 }) => {
+    const ref = useRef<HTMLDivElement | null>(null);
+    const [inView, setInView] = useState(false);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const io = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setInView(true);
+                        io.disconnect();
+                    }
+                });
+            },
+            { threshold, rootMargin: '0px 0px -15% 0px' }
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [threshold]);
+
+    const style: React.CSSProperties = {
+        transitionDelay: `${delayMs}ms`,
+        transform: inView ? 'translateY(0) scale(1)' : `translateY(${y}px) scale(${startScale})`,
+        opacity: inView ? 1 : 0,
+    };
+
+    return (
+        <div
+            ref={ref}
+            className={`transform will-change-transform transition-opacity transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${className}`}
+            style={style}
+        >
+            {children}
+        </div>
+    );
+};
+
+// --- Lazy Image with skeleton ---
+export const LazyImage: React.FC<{ src: string; alt: string; className?: string; loading?: 'lazy' | 'eager'; delayMs?: number; disableReveal?: boolean; direction?: 'up' | 'none' }> = ({ src, alt, className, loading = 'lazy', delayMs = 0, disableReveal = false, direction = 'up' }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isInView, setIsInView] = useState(false);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setIsInView(true);
+                        observer.disconnect();
+                    }
+                });
+            },
+            { threshold: 0.2, rootMargin: '0px 0px -20% 0px' }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!isInView || isLoaded) return;
+        const timeoutId = window.setTimeout(() => {
+            // Fallback to show the image animation even if the browser defers the load event
+            setIsLoaded(true);
+        }, 800);
+        return () => window.clearTimeout(timeoutId);
+    }, [isInView, isLoaded]);
+
+    const transitionClasses = 'transform will-change-transform transition-opacity transition-transform duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)]';
+    const hiddenTransform = direction === 'up' ? 'opacity-0 translate-y-8 scale-95' : 'opacity-0 scale-95';
+    const visibleTransform = 'opacity-100 translate-y-0 scale-100';
+    const animatedClasses = disableReveal
+        ? `${className || ''}`
+        : `${className || ''} ${transitionClasses} ${isInView ? visibleTransform : hiddenTransform}`;
+    const style: React.CSSProperties | undefined = disableReveal ? undefined : { transitionDelay: `${delayMs}ms` };
+
+    return (
+        <div ref={containerRef} className="relative w-full h-full overflow-hidden">
+            <img
+                src={src}
+                alt={alt}
+                loading={loading}
+                onLoad={() => setIsLoaded(true)}
+                decoding="async"
+                style={style}
+                className={animatedClasses}
+            />
+            {(!isLoaded || !isInView) && <div className="absolute inset-0 bg-white/10 animate-pulse" />}
+        </div>
+    );
+};
+
+// --- Minimal Icons ---
+export const IconLinkedIn: React.FC<{ className?: string; size?: number }> = ({ className, size = 24 }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="2" y="2" width="20" height="20" rx="2" ry="2"></rect>
+        <line x1="8" y1="11" x2="8" y2="16"></line>
+        <line x1="8" y1="8" x2="8" y2="8"></line>
+        <path d="M12 16v-5h3a3 3 0 0 1 3 3v2"></path>
+    </svg>
+);
+
+export const IconBehance: React.FC<{ className?: string; size?: number }> = ({ className, size = 24 }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M4 8h6a3 3 0 0 1 0 6H4z"></path>
+        <path d="M4 11h5"></path>
+        <path d="M14 10h6"></path>
+        <path d="M14 14h6"></path>
+    </svg>
+);
+
+export const IconInstagram: React.FC<{ className?: string; size?: number }> = ({ className, size = 24 }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <rect x="3" y="3" width="18" height="18" rx="4" ry="4"></rect>
+        <circle cx="12" cy="12" r="3"></circle>
+        <line x1="17" y1="7" x2="17" y2="7"></line>
+    </svg>
+);
+
+export const IconFacebook: React.FC<{ className?: string; size?: number }> = ({ className, size = 24 }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+    </svg>
+);
+
 export const ContactForm: React.FC = () => (
      <form className="space-y-4">
         <input type="text" placeholder="Your Name" className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 transition-colors duration-300" />
@@ -174,7 +327,7 @@ export const CreativeImageFrame: React.FC<{ imageUrl: string }> = ({ imageUrl })
 
 
 export const AdminSidebar: React.FC<{ onLogout: () => void }> = ({ onLogout }) => (
-    <div className="w-64 admin-sidebar-light flex flex-col p-4 flex-shrink-0">
+    <div className="fixed left-0 top-0 w-64 h-screen admin-sidebar-light flex flex-col p-4 z-10 overflow-y-auto">
         <h1 className="admin-sidebar-title text-xl font-bold tracking-widest text-center py-4">ADMIN PANEL</h1>
         <nav className="flex-grow mt-8 space-y-2">
             <AdminNavLink to="/admin">Dashboard</AdminNavLink>

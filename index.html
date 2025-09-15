@@ -1,9 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rishad's Portfolio</title>
+    <!-- Character encoding -->
+    <meta charset="UTF-8">
+
+    <!-- Mobile responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title (shows in browser tab & search engines) -->
+    <title>Rishad Pk | Creative Designer & Digital Marketer</title>
+
+    <!-- Description (short summary for SEO & Google results) -->
+    <meta name="description" content="Creative designer specializing in branding, UI/UX, motion graphics, 3D visualization, and digital marketing. Explore my portfolio to see design and strategy in action.">
+
+    <!-- Keywords (not used heavily by Google, but still good) -->
+    <meta name="keywords" content="graphic designer, creative designer, UI/UX, branding, motion graphics, 3D design, portfolio, digital marketing">
+
+    <!-- Author -->
+    <meta name="author" content="Rishad Pk">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Open Graph meta tags for social media sharing -->
+    <meta property="og:title" content="Rishad Pk | Creative Designer & Digital Marketer">
+    <meta property="og:description" content="Explore my portfolio showcasing branding, UI/UX, motion graphics, and digital marketing projects.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://rishadpk.com/">
+    <meta property="og:image" content="https://rishadpk.com/preview-image.jpg">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&family=Vina+Sans&display=swap" rel="stylesheet">
@@ -15,7 +43,7 @@
       body { margin: 0; line-height: inherit; }
       h1, h2, h3, h4, h5, h6, p, a, blockquote, figure, ul, ol, li, form, input, textarea, button { margin: 0; padding: 0; }
       a { color: inherit; text-decoration: inherit; }
-      button { background-color: transparent; background-image: none; cursor: pointer; -webkit-appearance: button; }
+      button { background-color: transparent; background-image: none; cursor: pointer; -webkit-appearance: button; appearance: button; }
       input, textarea { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
       img, video { max-width: 100%; height: auto; }
 
@@ -32,11 +60,11 @@
       }
 
       /* 3. Keyframes & Animations */
-      @keyframes fadeIn { '0%': { opacity: '0'; transform: 'translateY(10px)'; } '100%': { opacity: '1'; transform: 'translateY(0)'; } }
-      @keyframes fadeOut { '0%': { opacity: '1'; } '100%': { opacity: '0'; } }
-      @keyframes glow { '0%, 100%': { boxShadow: '0 0 5px #00f6ff, 0 0 10px #00f6ff'; } '50%': { boxShadow: '0 0 20px #00f6ff, 0 0 30px #00f6ff'; } }
-      @keyframes slow-zoom { '0%': { transform: 'scale(1)'; } '100%': { transform: 'scale(1.05)'; } }
-      @keyframes blink { '50%': { opacity: '0'; } }
+      @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+      @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+      @keyframes glow { 0%, 100% { box-shadow: 0 0 5px #00f6ff, 0 0 10px #00f6ff; } 50% { box-shadow: 0 0 20px #00f6ff, 0 0 30px #00f6ff; } }
+      @keyframes slow-zoom { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+      @keyframes blink { 50% { opacity: 0; } }
       @keyframes loading-snake { 0% { left: 0%; right: 100%; } 50% { left: 0%; right: 0%; } 100% { left: 100%; right: 0%; } }
       .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
       .animate-glow { animation: glow 2s ease-in-out infinite alternate; }
@@ -88,7 +116,8 @@
       .select-none { user-select: none; } .object-contain { object-fit: contain; } .object-cover { object-fit: cover; } .overflow-hidden { overflow: hidden; } .group:hover .group-hover\:scale-105 { --tw-scale-x: 1.05; --tw-scale-y: 1.05; transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); } .group:hover .group-hover\:bg-black\/70 { background-color: rgba(0,0,0,0.7); } .group:hover .group-hover\:translate-y-0 { --tw-translate-y: 0px; transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); } .group:hover .group-hover\:opacity-100 { opacity: 1; } .group:hover .group-hover\:text-brand-cyan { color: var(--color-brand-cyan); } .hover\:-translate-y-1:hover { --tw-translate-y: -0.25rem; transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); } .hover\:-translate-y-2:hover { --tw-translate-y: -0.5rem; transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); } .hover\:text-brand-cyan:hover { color: var(--color-brand-cyan); } .hover\:border-brand-cyan:hover { border-color: var(--color-brand-cyan); } .hover\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); } .hover\:shadow-brand-cyan\/10:hover { --tw-shadow-color: rgba(0, 246, 255, 0.1); --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color); box-shadow: var(--tw-shadow); } .hover\:bg-brand-cyan:hover { background-color: var(--color-brand-cyan); } .hover\:text-dark-bg:hover { color: var(--color-dark-bg); } .hover\:bg-gray-600:hover { background-color: #4b5563; } .hover\:bg-red-500:hover { background-color: #ef4444; } .hover\:text-white:hover { color: #fff; } .hover\:bg-brand-cyan\/20:hover { background-color: rgba(0, 246, 255, 0.2); } .hover\:bg-brand-purple\/20:hover { background-color: rgba(109, 40, 217, 0.2); } .focus\:border-brand-cyan:focus { border-color: var(--color-brand-cyan); } .focus\:ring-0:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); } .disabled\:opacity-50:disabled { opacity: 0.5; } .disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
 
       /* Bottom Navigation Bar Styles */
-      .bottom-nav-container { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 50; background-color: rgba(20, 20, 20, 0.8); backdrop-filter: blur(8px); border: 1px solid var(--color-dark-border); border-radius: 9999px; padding: 0.5rem; display: flex; gap: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+      .bottom-nav-container { position: fixed; bottom: 1.5rem; left: 0; right: 0; z-index: 50; display: flex; justify-content: center; align-items: center; }
+      .bottom-nav-inner { background-color: rgba(20, 20, 20, 0.8); backdrop-filter: blur(8px); border: 1px solid var(--color-dark-border); border-radius: 9999px; padding: 0.5rem; display: flex; gap: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
       .bottom-nav-link { padding: 0.5rem 1.25rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; color: #9ca3af; background-color: transparent; transition: all 0.3s ease; text-decoration: none; }
       .bottom-nav-link.active { color: #000; background-color: #fff; }
       .bottom-nav-link:not(.active):hover { color: #fff; background-color: rgba(255, 255, 255, 0.1); }
@@ -101,7 +130,7 @@
       .animated-link-underline-light::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background-color: #fff; transform: scaleX(0); transform-origin: left center; transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); }
       .animated-link-underline-light:hover::after { transform: scaleX(1); }
       
-      @keyframes corner-pulse { '0%': { opacity: '0.4'; border-color: 'var(--color-brand-cyan)'; } '100%': { opacity: '1'; border-color: '#fff'; } }
+      @keyframes corner-pulse { 0% { opacity: 0.4; border-color: var(--color-brand-cyan); } 100% { opacity: 1; border-color: #fff; } }
       .creative-image-wrapper { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1 / 1; margin: auto; padding: 1rem; }
       .creative-image-inner { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px; }
       .creative-image { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); }
@@ -117,7 +146,7 @@
       .work-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
       .work-gallery-item, .contact-cta-section, .portfolio-gallery-item { --cursor-x: 50%; --cursor-y: 50%; }
       .work-gallery-item:hover, .contact-cta-section:hover, .portfolio-gallery-item:hover { cursor: none; }
-      .work-gallery-item::after, .contact-cta-section::after, .portfolio-gallery-item::after { content: ''; position: absolute; top: var(--cursor-y); left: var(--cursor-x); width: 60px; height: 60px; background-color: #000; border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='7' y1='17' x2='17' y2='7'/%3E%3Cpolyline points='7 7 17 7 17 17'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; transform: translate(-50%, -50%) scale(0); transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1); opacity: 0; pointer-events: none; z-index: 10; }
+      .work-gallery-item::after, .contact-cta-section::after, .portfolio-gallery-item::after { content: ''; position: absolute; top: var(--cursor-y); left: var(--cursor-x); width: 48px; height: 48px; border: 2px solid #ffffff; border-radius: 50%; background: transparent; transform: translate(-50%, -50%) scale(0); transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1); opacity: 0; pointer-events: none; z-index: 10; }
       .work-gallery-item:hover::after, .contact-cta-section:hover::after, .portfolio-gallery-item:hover::after { opacity: 1; transform: translate(-50%, -50%) scale(1); }
       .contact-cta-section::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient( circle 400px at var(--cursor-x) var(--cursor-y), rgba(255, 255, 255, 0.05), transparent 80% ); opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
       .contact-cta-section:hover::before { opacity: 1; }
@@ -187,6 +216,26 @@
       .admin-access-btn:hover { background-color: rgba(55, 65, 81, 0.7); transform: scale(1.1); }
       .admin-access-btn svg { width: 1.25rem; height: 1.25rem; color: #d1d5db; }
       
+      /* Global minimal scrollbar (thin, black track, white thumb) */
+      html, body, * {
+        scrollbar-width: thin; /* Firefox */
+        scrollbar-color: #ffffff33 #000000b3; /* thumb, track */
+      }
+      *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      *::-webkit-scrollbar-track {
+        background: #000000b3; /* semi-black track */
+      }
+      *::-webkit-scrollbar-thumb {
+        background-color: #ffffff99; /* semi-white thumb */
+        border-radius: 9999px;
+      }
+      *::-webkit-scrollbar-thumb:hover {
+        background-color: #ffffffff; /* solid white on hover */
+      }
+
       /* Blog Page Redesign */
       .blog-featured-post { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); align-items: center; gap: 2rem; text-decoration: none; }
       .blog-thumb-2x1 { position: relative; width: 100%; aspect-ratio: 2 / 1; overflow: hidden; border-radius: 0.5rem; }

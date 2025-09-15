@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider, useData } from './context';
-import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout, AdminPortfolioEditor, AdminBlogEditor, AdminServicesManager } from './pages';
+import { HomePage, PortfolioPage, ProjectDetailPage, BlogPage, BlogPostPage, AboutPage, ContactPage, ServicesPage, AdminLoginPage, AdminDashboardPage, AdminPortfolioManager, AdminBlogManager, AdminSettingsPage, AdminLayout, PublicLayout, AdminPortfolioEditor, AdminBlogEditor, AdminServicesManager } from './pages';
 
 const App: React.FC = () => {
     return (
@@ -22,17 +22,30 @@ const AppContent: React.FC = () => {
         const loader = document.getElementById('loader');
         const loaderName = document.querySelector('#loader .loader-name');
         if (loaderName) {
-            loaderName.textContent = settings.heroName;
+            (loaderName as HTMLElement).textContent = settings.heroName;
         }
 
         if (loader) {
+            // Disable scrolling while loader is visible
+            const previousOverflow = document.body.style.overflow;
+            const previousTouchAction = (document.body.style as any).touchAction as string | undefined;
+            document.body.style.overflow = 'hidden';
+            (document.body.style as any).touchAction = 'none';
             const timer = setTimeout(() => {
                 loader.classList.add('loader-hidden');
                 setTimeout(() => {
-                    loader.style.display = 'none';
+                    (loader as HTMLElement).style.display = 'none';
+                    // Re-enable scrolling
+                    document.body.style.overflow = previousOverflow || '';
+                    (document.body.style as any).touchAction = previousTouchAction || '';
                 }, 500);
             }, 2500);
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(timer);
+                // Ensure scroll is restored on unmount or dependency change
+                document.body.style.overflow = previousOverflow || '';
+                (document.body.style as any).touchAction = previousTouchAction || '';
+            };
         }
     }, [settings]);
 
@@ -53,6 +66,7 @@ const AppRoutes: React.FC = () => {
                     <Route path="/blog" element={<BlogPage />} />
                     <Route path="/blog/:id" element={<BlogPostPage />} />
                     <Route path="/about" element={<AboutPage />} />
+                    <Route path="/services" element={<ServicesPage />} />
                     <Route path="/contact" element={<ContactPage />} />
                 </Route>
 

@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
-import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame } from './components';
+import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage } from './components';
+import { SiLinkedin, SiInstagram, SiFacebook, SiBehance } from 'react-icons/si';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
 import ReactQuill from 'react-quill';
@@ -33,9 +34,9 @@ export const AdminLayout: React.FC = () => {
     }
 
     return (
-        <div className="flex h-screen admin-light-theme">
+        <div className="admin-light-theme min-h-screen">
             <AdminSidebar onLogout={handleLogout} />
-            <main className="flex-1 p-8 overflow-y-auto">
+            <main className="p-8 min-h-screen bg-gray-50" style={{ marginLeft: '17rem' }}>
                 <Outlet />
             </main>
         </div>
@@ -45,7 +46,7 @@ export const AdminLayout: React.FC = () => {
 
 // PUBLIC PAGES
 export const HomePage: React.FC = () => {
-    const { projects, settings } = useData();
+    const { projects, settings, blogPosts } = useData();
     
     const aboutSectionRef = useRef<HTMLDivElement>(null);
     const [aboutAnimationProgress, setAboutAnimationProgress] = useState(0);
@@ -252,15 +253,22 @@ export const HomePage: React.FC = () => {
                                     <Link to="/portfolio" className="animated-link-underline-light text-gray-200 hover:text-white font-semibold text-sm md:text-base">View All →</Link>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 gap-8">
+                            <div className="mt-8 grid grid-cols-1 gap-8">
                                 {projects.slice(0, Math.min(12, projects.length)).map((project) => (
-                                    <Link to={`/portfolio/${project.id}`} key={project.id} className="group block">
-                                        <div className="relative overflow-hidden rounded-xl bg-white/5">
-                                            <div className="w-full aspect-[3/2]">
-                                                <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
-                                            </div>
-                                            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <h3 className="font-sans text-base md:text-lg font-semibold text-white truncate">{project.title}</h3>
+                                    <Link key={project.id} to={`/portfolio`} className="group block">
+                                        <div className="relative overflow-hidden rounded-xl bg-white/5 border border-dark-border">
+                                            <div className="w-full aspect-[3/2] relative">
+                                                <LazyImage src={project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
+                                                <div className="pointer-events-none absolute inset-0 z-10">
+                                                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                    <div className="absolute inset-0 flex items-end">
+                                                        <div className="p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                            <div className="inline-block px-2 py-1 rounded bg-black/80">
+                                                                <h3 className="font-sans text-sm md:text-base font-semibold text-white drop-shadow truncate max-w-[90%]">{project.title}</h3>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </Link>
@@ -306,6 +314,39 @@ export const HomePage: React.FC = () => {
                         </div>
                     </div>
                 </section>
+                
+                {/* Recent Blog Strip */}
+                <section id="recent-blog-section" className="bg-white text-black py-12 border-t border-gray-200">
+                    <div className="container mx-auto px-6">
+                        <div className="mb-8 flex items-end justify-between">
+                            <div>
+                                <p className="tracking-widest uppercase text-sm mb-2 text-gray-500">(04) Recent Blog</p>
+                                <h2 className="font-sans text-2xl md:text-4xl font-light">Latest Posts</h2>
+                            </div>
+                            <Link to="/blog" className="animated-link-underline inline-block text-black font-semibold text-sm md:text-base">View More →</Link>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {[...blogPosts]
+                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .slice(0, 3)
+                                .map((post) => (
+                                    <Link key={post.id} to={`/blog/${post.id}`} className="block">
+                                        <div className="rounded-lg border border-gray-200 overflow-hidden hover:shadow transition-shadow bg-white">
+                                            <div className="w-full aspect-[3/2] bg-gray-100">
+                                                <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="p-3">
+                                                <p className="text-sm font-medium line-clamp-2">{post.title}</p>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Solid spacer to prevent hero showing through */}
+                <div className="h-8 bg-white"></div>
 
                 <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-hidden">
                     <Link to="/contact" className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
@@ -377,9 +418,11 @@ export const ProjectDetailPage: React.FC = () => {
                     <p className="text-lg md:text-xl text-gray-400 mt-2">{project.client}</p>
                 </div>
                 <div className="mb-12">
-                    {project.images.map((img, index) => (
-                        <img key={index} src={img} alt={`${project.title} - view ${index + 1}`} className="project-detail-image" />
-                    ))}
+                    {[project.thumbnail, ...(project.images || [])]
+                        .filter(Boolean)
+                        .map((img, index) => (
+                            <img key={index} src={img as string} alt={`${project.title} - view ${index + 1}`} className="project-detail-image" />
+                        ))}
                 </div>
                 <div className="max-w-3xl mx-auto">
                     <h2 className="font-sans text-3xl font-bold text-white mb-4">Project Description</h2>
@@ -592,21 +635,131 @@ export const ContactPage: React.FC = () => {
                 <div className="max-w-2xl mx-auto mt-12 text-center">
                     <div className="social-links-container">
                         <a href={settings.social.linkedin} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="LinkedIn">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+                           <SiLinkedin size={24} />
                         </a>
                         <a href={settings.social.behance} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="Behance">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 6H6v12h8c2.21 0 4-1.79 4-4s-1.79-4-4-4m0 6H8v-4h6c1.1 0 2 .9 2 2s-.9 2-2 2m7-10h-4v2h4V2z"/></svg>
+                            <SiBehance size={24} />
                         </a>
                         <button onClick={() => handleSocialClick('instagram')} className="social-icon-dark" aria-label="Instagram">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                             <SiInstagram size={24} />
                         </button>
                         <button onClick={() => handleSocialClick('facebook')} className="social-icon-dark" aria-label="Facebook">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                            <SiFacebook size={24} />
                         </button>
                     </div>
                 </div>
             </div>
             <div className={`custom-toast ${showToast ? 'show' : ''}`} role="alert"> {toastMessage} </div>
+            <div className="h-32" />
+        </div>
+    );
+};
+
+// NEW: Services standalone page
+export const ServicesPage: React.FC = () => {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [translateY, setTranslateY] = useState(0);
+    const [isMobile, setIsMobile] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || isMobile) return;
+        const onScroll = () => {
+            const top = container.offsetTop;
+            const h = container.offsetHeight;
+            const vh = window.innerHeight;
+            const y = window.scrollY;
+            const start = top;
+            const end = top + h - vh;
+            if (y < start) { setTranslateY(0); setActiveIndex(0); return; }
+            if (y > end) { setTranslateY(Math.max(0, h - vh)); setActiveIndex(SERVICES.length - 1); return; }
+            const sc = y - start;
+            setTranslateY(sc);
+            const progress = Math.min(sc / Math.max(1, h - vh), 1);
+            setActiveIndex(Math.min(SERVICES.length - 1, Math.max(0, Math.floor(progress * SERVICES.length))));
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true } as any);
+        window.addEventListener('resize', onScroll);
+        return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+    }, [isMobile]);
+
+    const ALL_SERVICES = [
+        'Logo Design','Social Media Video Ads','Shopify Store Design & Setup','Business Cards Design','Explainer Videos','Product Visualization','Landing Page Design','Presentation Design','Social Media Post Design','Brand Guidelines Development','Package & Label Design','Wireframing & Prototyping','Motion Graphics Animation','SEO-Friendly Creative Content','Brochure Design','Infographics Design','Logo Animation','Event Promo Videos','WordPress Website Design','Corporate Profile Design','3D Product Mockups','E-commerce Store Design','Paid Ads Creatives (Google / Meta)','3D Modeling','Campaign Creative Strategy','Usability Testing & Improvements','Pitch Deck Design','Flyer & Poster Design','Event & Exhibition Branding','Web Banners & Hero Images','Content Planning & Calendar Creation','Dashboard / ERP UI Design','3D Logo Animation','Corporate Video Editing','Email Marketing Templates','Rebranding Solutions','Brand Positioning Support','Advertising Materials (banners, roll-ups, signage)','Reels / Shorts / TikTok Editing','User Journey & Flow Mapping','Website UI/UX Design','Creative Campaign Strategy','Copywriting for Ads & Creatives','Product Showcase Videos','Architectural Visualization','Landing Page Optimization','Product Image Enhancement & Mockups'
+    ];
+
+    const BIG_KEYWORDS = ['logo', 'brand', 'branding', 'social media', 'e-commerce', 'website', 'ui', 'ux', 'shopify', 'wordpress'];
+
+    const getWeightClass = (name: string) => {
+        const lower = name.toLowerCase();
+        const big = BIG_KEYWORDS.some(k => lower.includes(k));
+        if (big) return 'text-2xl md:text-4xl font-bold';
+        if (name.length <= 18) return 'text-xl md:text-2xl font-semibold';
+        return 'text-base md:text-lg font-medium';
+    };
+
+    return (
+        <div className="bg-white text-black">
+            <div className="container mx-auto px-6 pt-20">
+                <h1 className="font-sans text-3xl md:text-5xl font-bold mb-6">Services</h1>
+                <p className="text-gray-600">From branding to UI/UX and marketing creatives, here’s what I do.</p>
+            </div>
+
+            <section className="relative z-10 py-12">
+                <div className="services-container" ref={containerRef}>
+                    <div className="services-sticky-wrapper">
+                        <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                            <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                <div className="w-full" style={!isMobile ? { transform: `translateY(-${translateY}px)` } : undefined}>
+                                    {SERVICES.map((service, index) => (
+                                        <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
+                                            <div className="max-w-md px-4 md:px-0">
+                                                <div className="flex items-center gap-4 mb-4">
+                                                    <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                    <div className="h-[1px] w-16 bg-gray-300"></div>
+                                                </div>
+                                                <h3 className="font-sans text-2xl md:text-4xl font-bold mb-4 text-black">{service.title}</h3>
+                                                <p className="text-gray-600 mb-6 text-sm md:text-base">{service.description}</p>
+                                                <ul className="service-points-list">
+                                                    {service.points.map((point, i) => (
+                                                        <li key={i} className="service-point-item text-sm md:text-base"> {point} </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="h-full flex items-center justify-center relative hidden md:flex">
+                                <div className="service-image-container">
+                                    {SERVICES.map((service, index) => (
+                                        <img key={index} src={service.imageUrl} alt={service.title} className={`service-image ${activeIndex === index ? 'active' : ''}`} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="project-cta-section py-20">
+                <div className="container mx-auto px-6 text-center max-w-2xl">
+                    <h2 className="font-sans text-2xl md:text-3xl lg:text-4xl text-white font-light mb-6">
+                        Ready to start a project together?
+                        <br />
+                        Tell me what you need and I’ll help you ship it.
+                    </h2>
+                    <Link to="/contact" className="project-cta-button inline-block"> Contact Now </Link>
+                </div>
+            </section>
             <div className="h-32" />
         </div>
     );
@@ -942,7 +1095,7 @@ export const AdminPortfolioEditor: React.FC = () => {
     return (
         <div>
             <PageTitle>{isEditMode ? 'Edit Project' : 'Add New Project'}</PageTitle>
-            <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+            <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-24">
                 <div className="admin-card p-6 space-y-4">
                     <h3 className="font-sans text-xl">Project Details</h3>
                     <div>
@@ -978,18 +1131,41 @@ export const AdminPortfolioEditor: React.FC = () => {
                     <div>
                         <label className="form-label-light block mb-2">Project Detail Images</label>
                         <p className="form-input-hint">Recommended: 1920x1080px (16:9 ratio)</p>
-                        <div className="space-y-2">
-                        {project.images.map((img, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                                <div className="image-upload-wrapper flex-grow">
-                                    {img && <img src={img} alt={`Detail ${index+1} Preview`} className="image-preview-admin h-16 w-16" />}
-                                    <input type="file" accept="image/*" onChange={e => handleFileChange(e, `image-${index}`)} required={!img} className="form-input-admin-light file-input flex-grow" />
-                                </div>
-                                <AdminButton type="button" variant="danger" size="sm" onClick={() => removeImageInput(index)} disabled={project.images.length <= 1}> Remove </AdminButton>
-                            </div>
-                        ))}
+                        <div className="image-upload-wrapper">
+                            <input 
+                                type="file" 
+                                accept="image/*" 
+                                multiple 
+                                onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    if (files.length === 0) return;
+                                    const readersDone: string[] = [];
+                                    let remaining = files.length;
+                                    files.forEach((file) => {
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                            readersDone.push(reader.result as string);
+                                            remaining -= 1;
+                                            if (remaining === 0) {
+                                                setProject(prev => ({ ...prev, images: [...(prev.images || []).filter(Boolean), ...readersDone] }));
+                                            }
+                                        };
+                                        reader.readAsDataURL(file);
+                                    });
+                                }}
+                                className="form-input-admin-light file-input"
+                            />
                         </div>
-                        <AdminButton type="button" variant="secondary" size="sm" onClick={addImageInput} className="mt-4">Add Image</AdminButton>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+                            {(project.images || []).map((img, index) => (
+                                <div key={index} className="relative">
+                                    <img src={img} alt={`Detail ${index+1} Preview`} className="image-preview-admin h-24 w-full object-cover" />
+                                    <div className="mt-2 flex justify-between">
+                                        <AdminButton type="button" variant="danger" size="sm" onClick={() => removeImageInput(index)}>Remove</AdminButton>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
@@ -1277,7 +1453,7 @@ export const AdminBlogEditor: React.FC = () => {
     return (
         <div>
             <PageTitle>{isEditMode ? 'Edit Post' : 'Add New Post'}</PageTitle>
-            <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
+            <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl pb-24">
                  <div className="admin-card p-6 space-y-4">
                     <div>
                         <label className="form-label-light block mb-2">Post Title</label>
