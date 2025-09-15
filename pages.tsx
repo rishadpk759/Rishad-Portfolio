@@ -456,10 +456,10 @@ export const PortfolioPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
             </div>
             <div className="container mx-auto px-6 pb-12">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    <aside className="md:col-span-3 lg:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
+                    <aside className="hidden md:block md:col-span-3 lg:col-span-2">
                         <div className="sticky top-24">
-                            <div className="flex md:block md:space-y-2 category-filters">
+                            <div className="flex flex-col items-start space-y-3 category-filters">
                                 {PORTFOLIO_CATEGORIES.map(category => (
                                     <button key={category} onClick={() => setSelectedCategory(category)} className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}>
                                         {category}
@@ -469,7 +469,7 @@ export const PortfolioPage: React.FC = () => {
                         </div>
                     </aside>
                     <section className="md:col-span-9 lg:col-span-10">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
                             {filteredProjects.map(project => (
                                 <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative">
                                     <img src={project.thumbnail} alt={project.title} />
