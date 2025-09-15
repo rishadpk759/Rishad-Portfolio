@@ -445,9 +445,23 @@ export const HomePage: React.FC = () => {
 export const PortfolioPage: React.FC = () => {
     const { projects } = useData();
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [columnCount, setColumnCount] = useState(1);
     
     const filteredProjects = projects.filter(p => selectedCategory === 'All' || p.category === selectedCategory);
     
+    useEffect(() => {
+        const computeColumns = () => {
+            const w = window.innerWidth;
+            if (w >= 1280) return 4;
+            if (w >= 1024) return 3;
+            if (w >= 640) return 2;
+            return 1;
+        };
+        const update = () => setColumnCount(computeColumns());
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
 
     return (
         <div className="animate-fadeIn">
@@ -456,11 +470,11 @@ export const PortfolioPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
             </div>
             <div className="container mx-auto px-6 pb-12">
-                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     {filteredProjects.map(project => (
-                        <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative mb-6 break-inside-avoid">
-                            <img src={project.thumbnail} alt={project.title} className="w-full h-auto block rounded-lg shadow-lg" />
-                            <div className="absolute inset-0 rounded-lg bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
+                        <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden">
+                            <img src={project.thumbnail} alt={project.title} className="w-full h-auto block" />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                     <h3 className="font-sans text-lg md:text-xl text-white font-bold">{project.title}</h3>
                                     <p className="text-xs md:text-sm text-gray-300">{project.client}</p>
