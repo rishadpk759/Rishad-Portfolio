@@ -138,32 +138,35 @@ export const HomePage: React.FC = () => {
         let maxScroll = 0;
         let containerHeight = 0;
         let isHorizontalScrolling = false;
+        let startBuffer = 0; // vertical distance to scroll within section before horizontal begins
         
         const setupScroll = () => {
             const wrapper = track.parentElement;
             if (!wrapper) return;
-            
-            // Calculate the total width needed to show all images
+
             const items = track.querySelectorAll('.work-gallery-item');
             if (items.length === 0) return;
-            
+
             const firstItem = items[0] as HTMLElement;
-            const itemWidth = firstItem.offsetWidth;
-            const gap = 24; // 6 * 4px gap
-            const totalWidth = (items.length * itemWidth) + ((items.length - 1) * gap);
-            
-            // Calculate how much we need to scroll to show all images
             const viewportWidth = window.innerWidth;
-            const centerOffset = (viewportWidth / 2) - (itemWidth / 2);
+            const firstItemWidth = firstItem.offsetWidth;
+            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
             const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
             const initialX = centerOffset - trackPaddingLeft;
-            
-            // Max scroll is the distance from center to show the last image
-            maxScroll = Math.max(0, totalWidth - viewportWidth + initialX);
-            
+
+            // Use actual scrollWidth of the track to account for padding and CSS gap
+            const contentWidth = track.scrollWidth;
+            maxScroll = Math.max(0, contentWidth - viewportWidth + initialX);
+
+            // Start horizontal only after one full viewport scroll while pinned
+            startBuffer = window.innerHeight;
+
             // Set container height to create the horizontal scroll duration
-            containerHeight = window.innerHeight + maxScroll;
+            containerHeight = window.innerHeight + startBuffer + maxScroll;
             container.style.height = `${containerHeight}px`;
+
+            // Set initial centered position before scrolling begins
+            track.style.transform = `translateX(${initialX}px)`;
         };
         
         const handleScroll = () => {
@@ -173,12 +176,12 @@ export const HomePage: React.FC = () => {
             const scrollY = window.scrollY;
             const scrollInContainer = scrollY - containerTop;
             
-            // Start horizontal scrolling when we reach the container
-            if (scrollInContainer >= 0 && scrollInContainer < maxScroll) {
+            // Start horizontal scrolling only after the startBuffer inside the container
+            if (scrollInContainer >= startBuffer && scrollInContainer < startBuffer + maxScroll) {
                 isHorizontalScrolling = true;
                 
                 // Calculate horizontal scroll progress
-                const scrollProgress = Math.max(0, Math.min(1, scrollInContainer / maxScroll));
+                const scrollProgress = Math.max(0, Math.min(1, (scrollInContainer - startBuffer) / maxScroll));
                 
                 // Center the first image initially, then scroll left
                 const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
@@ -194,6 +197,19 @@ export const HomePage: React.FC = () => {
                 track.style.transform = `translateX(${translateX}px)`;
             } else {
                 isHorizontalScrolling = false;
+                // If above the section, reset to initial; if past the section, clamp to end
+                const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
+                if (!firstItem) return;
+                const viewportWidth = window.innerWidth;
+                const firstItemWidth = firstItem.offsetWidth;
+                const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
+                const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+                const initialX = centerOffset - trackPaddingLeft;
+                if (scrollInContainer < startBuffer) {
+                    track.style.transform = `translateX(${initialX}px)`;
+                } else if (scrollInContainer >= startBuffer + maxScroll) {
+                    track.style.transform = `translateX(${initialX - maxScroll}px)`;
+                }
             }
         };
         
@@ -204,13 +220,13 @@ export const HomePage: React.FC = () => {
             const scrollY = window.scrollY;
             const scrollInContainer = scrollY - containerTop;
             
-            // Only handle wheel when in the horizontal scroll section
-            if (scrollInContainer >= 0 && scrollInContainer < maxScroll) {
+            // Only handle wheel when in the horizontal scroll range (after buffer)
+            if (scrollInContainer >= startBuffer && scrollInContainer < startBuffer + maxScroll) {
                 e.preventDefault();
                 
-                const scrollSpeed = 50;
+                const scrollSpeed = 2; // reduce speed for smoother control
                 const deltaY = e.deltaY;
-                const newScrollY = Math.max(containerTop, Math.min(containerTop + maxScroll, scrollY + deltaY * scrollSpeed));
+                const newScrollY = Math.max(containerTop + startBuffer, Math.min(containerTop + startBuffer + maxScroll, scrollY + deltaY * scrollSpeed));
                 
                 window.scrollTo(0, newScrollY);
             }
@@ -219,16 +235,30 @@ export const HomePage: React.FC = () => {
         // Initial setup
         setupScroll();
         handleScroll();
-        
+
+        // Recalculate once images are loaded and on window load
+        const imgs = Array.from(track.querySelectorAll('img')) as HTMLImageElement[];
+        const imgLoadHandlers: Array<{ img: HTMLImageElement; handler: () => void }> = [];
+        imgs.forEach((img) => {
+            if (!img.complete) {
+                const handler = () => setupScroll();
+                img.addEventListener('load', handler);
+                imgLoadHandlers.push({ img, handler });
+            }
+        });
+        window.addEventListener('load', setupScroll);
+
         // Event listeners
         window.addEventListener('scroll', handleScroll, { passive: true });
         window.addEventListener('resize', setupScroll);
         window.addEventListener('wheel', handleWheel, { passive: false });
-        
+
         return () => {
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', setupScroll);
             window.removeEventListener('wheel', handleWheel);
+            window.removeEventListener('load', setupScroll);
+            imgLoadHandlers.forEach(({ img, handler }) => img.removeEventListener('load', handler));
         };
     }, [projects]);
     
@@ -430,6 +460,7 @@ export const PortfolioPage: React.FC = () => {
         
         let maxScroll = 0;
         let wrapperHeight = 0;
+        let startBuffer = 0; // vertical distance to scroll inside sticky before horizontal starts
         let isDesktop = window.innerWidth >= 768; // md breakpoint
         
         const setupScroll = () => {
@@ -438,8 +469,20 @@ export const PortfolioPage: React.FC = () => {
             if (isDesktop) {
                 // Desktop: Horizontal scroll
                 maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-                wrapperHeight = window.innerHeight + maxScroll;
+                startBuffer = window.innerHeight; // begin horizontal after one viewport scrolled while pinned
+                wrapperHeight = window.innerHeight + startBuffer + maxScroll;
                 wrapper.style.height = `${wrapperHeight}px`;
+
+                // Center initial position
+                const firstItem = track.querySelector('.portfolio-gallery-item') as HTMLElement;
+                if (firstItem) {
+                    const viewportWidth = window.innerWidth;
+                    const firstItemWidth = firstItem.offsetWidth;
+                    const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
+                    const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+                    const initialX = centerOffset - trackPaddingLeft;
+                    track.style.transform = `translateX(${initialX}px)`;
+                }
             } else {
                 // Mobile: Normal vertical scroll
                 wrapper.style.height = 'auto';
@@ -452,7 +495,10 @@ export const PortfolioPage: React.FC = () => {
             
             const wrapperTop = wrapper.offsetTop;
             const scrollY = window.scrollY;
-            const scrollProgress = Math.max(0, Math.min(1, (scrollY - wrapperTop) / (wrapperHeight - window.innerHeight)));
+            const scrollInWrapper = scrollY - wrapperTop;
+            const pinDuration = wrapperHeight - window.innerHeight;
+            const inHorizontal = scrollInWrapper >= startBuffer && scrollInWrapper < startBuffer + maxScroll;
+            const progressRaw = Math.max(0, Math.min(1, (scrollInWrapper - startBuffer) / maxScroll));
             
             // Center the first image initially, then scroll left
             const firstItem = track.querySelector('.portfolio-gallery-item') as HTMLElement;
@@ -464,9 +510,19 @@ export const PortfolioPage: React.FC = () => {
             const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
             const initialX = centerOffset - trackPaddingLeft;
             
-            const translateX = initialX - (scrollProgress * maxScroll);
-            if (trackRef.current) trackRef.current.style.transform = `translateX(${translateX}px)`;
-            if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${scrollProgress}`);
+            if (inHorizontal) {
+                const translateX = initialX - (progressRaw * maxScroll);
+                if (trackRef.current) trackRef.current.style.transform = `translateX(${translateX}px)`;
+                if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${progressRaw}`);
+            } else {
+                if (scrollInWrapper < startBuffer) {
+                    if (trackRef.current) trackRef.current.style.transform = `translateX(${initialX}px)`;
+                    if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `0`);
+                } else if (scrollInWrapper >= startBuffer + maxScroll) {
+                    if (trackRef.current) trackRef.current.style.transform = `translateX(${initialX - maxScroll}px)`;
+                    if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `1`);
+                }
+            }
         };
         
         const handleWheel = (e: WheelEvent) => {
@@ -481,9 +537,12 @@ export const PortfolioPage: React.FC = () => {
             if (scrollInWrapper > 0 && scrollInWrapper < pinDuration) {
                 e.preventDefault();
                 
-                const scrollSpeed = 50;
+                const scrollSpeed = 2; // match Work section feel
                 const deltaY = e.deltaY;
-                const newScrollY = Math.max(wrapperTop, Math.min(wrapperTop + pinDuration, scrollY + deltaY * scrollSpeed));
+                // Constrain inside horizontal range to begin after the buffer
+                const minY = wrapperTop + startBuffer;
+                const maxY = wrapperTop + startBuffer + maxScroll;
+                const newScrollY = Math.max(minY, Math.min(maxY, scrollY + deltaY * scrollSpeed));
                 
                 window.scrollTo(0, newScrollY);
             }
