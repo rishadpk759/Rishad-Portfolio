@@ -634,6 +634,7 @@ export const AdminLoginPage: React.FC = () => {
 
 export const AdminDashboardPage: React.FC = () => {
     const { projects, blogPosts } = useData();
+    const totalReaders = useMemo(() => blogPosts.reduce((sum, p) => sum + (p.views || 0), 0), [blogPosts]);
     return (
         <div>
             <PageTitle subtitle="Welcome to your content management hub.">Dashboard</PageTitle>
@@ -645,6 +646,10 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="admin-card p-6">
                     <h3 className="admin-page-subtitle font-semibold">Total Blog Posts</h3>
                     <p className="text-4xl font-bold mt-2">{blogPosts.length}</p>
+                </div>
+                <div className="admin-card p-6">
+                    <h3 className="admin-page-subtitle font-semibold">Total Readers</h3>
+                    <p className="text-4xl font-bold mt-2">{totalReaders.toLocaleString()}</p>
                 </div>
             </div>
             <div className="mt-12">
