@@ -55,10 +55,11 @@ export const HomePage: React.FC = () => {
     const aboutSectionRef = useRef<HTMLDivElement>(null);
     const [aboutAnimationProgress, setAboutAnimationProgress] = useState(0);
 
-    // Removed horizontal scroll behavior for Work section
+    // Work section simplified to static grid (no complex animations)
     
     const [activeServiceIndex, setActiveServiceIndex] = useState(0);
     const [serviceTextTranslateY, setServiceTextTranslateY] = useState(0);
+    const [isMobile, setIsMobile] = useState<boolean>(false);
     const servicesContainerRef = useRef<HTMLDivElement>(null);
 
     const ROLES = ["Creative Designer", "UI/UX Designer", "Branding Specialist", "Visual Storyteller", "Design Strategist"];
@@ -129,7 +130,7 @@ export const HomePage: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Removed horizontal scroll effect for Work section
+    // Removed scroll-based sticky logic for Work section
     
     useEffect(() => {
         const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section, .portfolio-gallery-item');
@@ -146,9 +147,23 @@ export const HomePage: React.FC = () => {
     }, [projects]);
       
     useEffect(() => {
+        const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
+        updateIsMobile();
+        window.addEventListener('resize', updateIsMobile);
+        return () => window.removeEventListener('resize', updateIsMobile);
+    }, []);
+
+    useEffect(() => {
         const container = servicesContainerRef.current;
         if (!container) return;
         
+        if (isMobile) {
+            // Disable sticky scroll logic on mobile; render stacked
+            setServiceTextTranslateY(0);
+            setActiveServiceIndex(0);
+            return;
+        }
+
         const handleScroll = () => {
             if (!container) return;
             
@@ -193,7 +208,7 @@ export const HomePage: React.FC = () => {
             window.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleScroll);
         };
-    }, [activeServiceIndex]);
+    }, [activeServiceIndex, isMobile]);
 
     return (
         <div className="relative">
@@ -202,9 +217,9 @@ export const HomePage: React.FC = () => {
                     {settings.heroName}
                 </h1>
                 <div className="relative z-10">
-                    <img src={settings.heroImage} alt="Rishad PK" className="w-auto max-h-[85vh] object-contain select-none animate-slow-zoom" />
+                    <img src={settings.heroImage} alt="Rishad PK" className="hero-image select-none animate-slow-zoom" />
                 </div>
-                <div className="absolute bottom-12 left-12 z-20 text-left max-w-sm">
+                <div className="home-hero-subtext">
                     <p className="font-sans text-xl text-gray-300 leading-relaxed h-8">
                        {displayedRole}
                        <span className="typing-cursor"></span>
@@ -233,25 +248,24 @@ export const HomePage: React.FC = () => {
                         </div>
                     </section>
                     
-                    <section id="work-section" className="relative z-20 bg-dark-bg py-16">
+                    <section id="work-section" className="relative z-20 bg-dark-bg py-20">
                         <div className="container mx-auto px-6">
-                            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                                <div>
-                                    <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
-                                    <h2 className="font-sans text-2xl md:text-4xl text-white font-light">Work Highlights</h2>
+                            <div className="mb-10">
+                                <p className="tracking-widest uppercase text-sm mb-4 text-gray-400">(02) WORKS</p>
+                                <div className="flex items-end justify-between">
+                                    <h2 className="font-sans text-3xl md:text-5xl text-white font-light">Work Highlights</h2>
+                                    <Link to="/portfolio" className="animated-link-underline-light text-gray-200 hover:text-white font-semibold text-sm md:text-base">View All →</Link>
                                 </div>
-                                <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold text-sm md:text-base"> View All Works → </Link>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {projects.map(project => (
-                                    <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden bg-dark-card border border-dark-border">
-                                        <div className="relative w-full pt-[66%]">
-                                            <img src={project.thumbnail} alt={project.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                                                <div>
-                                                    <h3 className="font-sans text-lg md:text-xl text-white font-bold">{project.title}</h3>
-                                                    <p className="text-xs md:text-sm text-gray-300">{project.client}</p>
-                                                </div>
+                            <div className="grid grid-cols-1 gap-8">
+                                {projects.slice(0, Math.min(12, projects.length)).map((project) => (
+                                    <Link to={`/portfolio/${project.id}`} key={project.id} className="group block">
+                                        <div className="relative overflow-hidden rounded-xl bg-white/5">
+                                            <div className="w-full aspect-[3/2]">
+                                                <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                                            </div>
+                                            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <h3 className="font-sans text-base md:text-lg font-semibold text-white truncate">{project.title}</h3>
                                             </div>
                                         </div>
                                     </Link>
@@ -265,10 +279,10 @@ export const HomePage: React.FC = () => {
                     <div className="services-container">
                         <div className="services-sticky-wrapper">
                             <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                <div className="overflow-hidden h-screen relative">
-                                    <div className="w-full" style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
+                                <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                    <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
                                         {SERVICES.map((service, index) => (
-                                            <div key={index} data-index={index} className="service-text-item h-screen flex items-center">
+                                            <div key={index} data-index={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
                                                 <div className="max-w-md px-4 md:px-0">
                                                     <div className="flex items-center gap-4 mb-4">
                                                         <p className="service-phase-text">SERVICE 0{index + 1}</p>
@@ -337,7 +351,7 @@ export const PortfolioPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
             </div>
             <div className="container mx-auto px-6 pb-12">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 gap-8">
                     {filteredProjects.map(project => (
                         <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden">
                             <img src={project.thumbnail} alt={project.title} className="w-full h-auto block" />
@@ -441,7 +455,7 @@ export const BlogPostPage: React.FC = () => {
     return (
         <>
             <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-3xl mx-auto blog-post-content">
                     <h1 className="font-sans text-3xl md:text-5xl font-bold text-white leading-tight">{post.title}</h1>
                     <div className="blog-meta my-4">
                         <span>{post.date}</span>
