@@ -115,10 +115,14 @@
       .work-gallery-item { flex-shrink: 0; width: 30vw; max-width: 450px; height: 40vh; border-radius: 0.5rem; overflow: hidden; border: 1px solid var(--color-dark-border); transition: border-color 0.3s ease; }
       .work-gallery-item:hover { border-color: var(--color-brand-cyan); }
       .work-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
-      .work-gallery-item, .contact-cta-section, .portfolio-gallery-item { --cursor-x: 50%; --cursor-y: 50%; }
-      .work-gallery-item:hover, .contact-cta-section:hover, .portfolio-gallery-item:hover { cursor: none; }
-      .work-gallery-item::after, .contact-cta-section::after, .portfolio-gallery-item::after { content: ''; position: absolute; top: var(--cursor-y); left: var(--cursor-x); width: 60px; height: 60px; background-color: #000; border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='7' y1='17' x2='17' y2='7'/%3E%3Cpolyline points='7 7 17 7 17 17'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; transform: translate(-50%, -50%) scale(0); transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1); opacity: 0; pointer-events: none; z-index: 10; }
-      .work-gallery-item:hover::after, .contact-cta-section:hover::after, .portfolio-gallery-item:hover::after { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      .work-gallery-item, .contact-cta-section, .portfolio-gallery-item, .work-card, .portfolio-card { --cursor-x: 50%; --cursor-y: 50%; }
+      .work-gallery-item:hover, .contact-cta-section:hover, .portfolio-gallery-item:hover, .work-card:hover, .portfolio-card:hover { cursor: none; }
+      .work-gallery-item::after, .contact-cta-section::after, .portfolio-gallery-item::after, .work-card::after, .portfolio-card::after { content: ''; position: absolute; top: var(--cursor-y); left: var(--cursor-x); width: 60px; height: 60px; background-color: #000; border-radius: 50%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='7' y1='17' x2='17' y2='7'/%3E%3Cpolyline points='7 7 17 7 17 17'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; transform: translate(-50%, -50%) scale(0); transition: transform 0.2s cubic-bezier(0.19, 1, 0.22, 1); opacity: 0; pointer-events: none; z-index: 10; }
+      .work-gallery-item:hover::after, .contact-cta-section:hover::after, .portfolio-gallery-item:hover::after, .work-card:hover::after, .portfolio-card:hover::after { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+      /* Hover effects for work/portfolio cards */
+      .work-card img, .portfolio-card img { transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), filter 0.3s ease; }
+      .work-card:hover img, .portfolio-card:hover img { transform: scale(1.05); filter: saturate(1.05) contrast(1.05); }
       .contact-cta-section::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient( circle 400px at var(--cursor-x) var(--cursor-y), rgba(255, 255, 255, 0.05), transparent 80% ); opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
       .contact-cta-section:hover::before { opacity: 1; }
       .typing-cursor { display: inline-block; width: 2px; height: 1.25em; background-color: currentColor; margin-left: 2px; vertical-align: bottom; animation: blink 1s infinite; }

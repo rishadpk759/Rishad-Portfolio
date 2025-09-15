@@ -128,7 +128,7 @@ export const HomePage: React.FC = () => {
     // Removed scroll-based sticky logic for Work section
     
     useEffect(() => {
-        const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section, .portfolio-gallery-item');
+        const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section, .portfolio-gallery-item, .work-card, .portfolio-card');
         const handleMouseMove = (e: MouseEvent) => {
           const target = e.currentTarget as HTMLElement;
           const rect = target.getBoundingClientRect();
@@ -255,9 +255,9 @@ export const HomePage: React.FC = () => {
                             <div className="grid grid-cols-1 gap-8">
                                 {projects.slice(0, Math.min(12, projects.length)).map((project) => (
                                     <Link to={`/portfolio/${project.id}`} key={project.id} className="group block">
-                                        <div className="relative overflow-hidden rounded-xl bg-white/5">
+                                        <div className="relative overflow-hidden rounded-xl bg-white/5 work-card">
                                             <div className="w-full aspect-[3/2]">
-                                                <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                                                <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                                             </div>
                                             <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <h3 className="font-sans text-base md:text-lg font-semibold text-white truncate">{project.title}</h3>
@@ -348,7 +348,7 @@ export const PortfolioPage: React.FC = () => {
             <div className="container mx-auto px-6 pb-12">
                 <div className="grid grid-cols-1 gap-8">
                     {filteredProjects.map(project => (
-                        <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden">
+                        <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden portfolio-card">
                             <img src={project.thumbnail} alt={project.title} className="w-full h-auto block" />
                             <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
                                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
