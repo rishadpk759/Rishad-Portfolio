@@ -55,8 +55,7 @@ export const HomePage: React.FC = () => {
     const aboutSectionRef = useRef<HTMLDivElement>(null);
     const [aboutAnimationProgress, setAboutAnimationProgress] = useState(0);
 
-    const workContainerRef = useRef<HTMLDivElement>(null);
-    const horizontalTrackRef = useRef<HTMLDivElement>(null);
+    // Removed horizontal scroll behavior for Work section
     
     const [activeServiceIndex, setActiveServiceIndex] = useState(0);
     const [serviceTextTranslateY, setServiceTextTranslateY] = useState(0);
@@ -130,137 +129,7 @@ export const HomePage: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    useEffect(() => {
-        const container = workContainerRef.current;
-        const track = horizontalTrackRef.current;
-        if (!container || !track) return;
-        
-        let maxScroll = 0;
-        let containerHeight = 0;
-        let isHorizontalScrolling = false;
-        let startBuffer = 0; // vertical distance to scroll within section before horizontal begins
-        
-        const setupScroll = () => {
-            const wrapper = track.parentElement;
-            if (!wrapper) return;
-
-            const items = track.querySelectorAll('.work-gallery-item');
-            if (items.length === 0) return;
-
-            const firstItem = items[0] as HTMLElement;
-            const viewportWidth = window.innerWidth;
-            const firstItemWidth = firstItem.offsetWidth;
-            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
-            const initialX = centerOffset - trackPaddingLeft;
-
-            // Use actual scrollWidth of the track to account for padding and CSS gap
-            const contentWidth = track.scrollWidth;
-            maxScroll = Math.max(0, contentWidth - viewportWidth + initialX);
-
-            // Start horizontal only after one full viewport scroll while pinned
-            startBuffer = window.innerHeight;
-
-            // Set container height to create the horizontal scroll duration
-            containerHeight = window.innerHeight + startBuffer + maxScroll;
-            container.style.height = `${containerHeight}px`;
-
-            // Set initial centered position before scrolling begins
-            track.style.transform = `translateX(${initialX}px)`;
-        };
-        
-        const handleScroll = () => {
-            if (maxScroll <= 0) return;
-            
-            const containerTop = container.offsetTop;
-            const scrollY = window.scrollY;
-            const scrollInContainer = scrollY - containerTop;
-            
-            // Start horizontal scrolling only after the startBuffer inside the container
-            if (scrollInContainer >= startBuffer && scrollInContainer < startBuffer + maxScroll) {
-                isHorizontalScrolling = true;
-                
-                // Calculate horizontal scroll progress
-                const scrollProgress = Math.max(0, Math.min(1, (scrollInContainer - startBuffer) / maxScroll));
-                
-                // Center the first image initially, then scroll left
-                const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
-                if (!firstItem) return;
-                
-                const viewportWidth = window.innerWidth;
-                const firstItemWidth = firstItem.offsetWidth;
-                const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-                const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
-                const initialX = centerOffset - trackPaddingLeft;
-                
-                const translateX = initialX - (scrollProgress * maxScroll);
-                track.style.transform = `translateX(${translateX}px)`;
-            } else {
-                isHorizontalScrolling = false;
-                // If above the section, reset to initial; if past the section, clamp to end
-                const firstItem = track.querySelector('.work-gallery-item') as HTMLElement;
-                if (!firstItem) return;
-                const viewportWidth = window.innerWidth;
-                const firstItemWidth = firstItem.offsetWidth;
-                const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-                const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
-                const initialX = centerOffset - trackPaddingLeft;
-                if (scrollInContainer < startBuffer) {
-                    track.style.transform = `translateX(${initialX}px)`;
-                } else if (scrollInContainer >= startBuffer + maxScroll) {
-                    track.style.transform = `translateX(${initialX - maxScroll}px)`;
-                }
-            }
-        };
-        
-        const handleWheel = (e: WheelEvent) => {
-            if (maxScroll <= 0) return;
-            
-            const containerTop = container.offsetTop;
-            const scrollY = window.scrollY;
-            const scrollInContainer = scrollY - containerTop;
-            
-            // Only handle wheel when in the horizontal scroll range (after buffer)
-            if (scrollInContainer >= startBuffer && scrollInContainer < startBuffer + maxScroll) {
-                e.preventDefault();
-                
-                const scrollSpeed = 2; // reduce speed for smoother control
-                const deltaY = e.deltaY;
-                const newScrollY = Math.max(containerTop + startBuffer, Math.min(containerTop + startBuffer + maxScroll, scrollY + deltaY * scrollSpeed));
-                
-                window.scrollTo(0, newScrollY);
-            }
-        };
-        
-        // Initial setup
-        setupScroll();
-        handleScroll();
-
-        // Recalculate once images are loaded and on window load
-        const imgs = Array.from(track.querySelectorAll('img')) as HTMLImageElement[];
-        const imgLoadHandlers: Array<{ img: HTMLImageElement; handler: () => void }> = [];
-        imgs.forEach((img) => {
-            if (!img.complete) {
-                const handler = () => setupScroll();
-                img.addEventListener('load', handler);
-                imgLoadHandlers.push({ img, handler });
-            }
-        });
-        window.addEventListener('load', setupScroll);
-
-        // Event listeners
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', setupScroll);
-        window.addEventListener('wheel', handleWheel, { passive: false });
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('resize', setupScroll);
-            window.removeEventListener('wheel', handleWheel);
-            window.removeEventListener('load', setupScroll);
-            imgLoadHandlers.forEach(({ img, handler }) => img.removeEventListener('load', handler));
-        };
-    }, [projects]);
+    // Removed horizontal scroll effect for Work section
     
     useEffect(() => {
         const interactiveItems = document.querySelectorAll('.work-gallery-item, .contact-cta-section, .portfolio-gallery-item');
@@ -364,31 +233,29 @@ export const HomePage: React.FC = () => {
                         </div>
                     </section>
                     
-                    <section id="work-section" className="relative z-20 bg-dark-bg">
-                        <div ref={workContainerRef} className="relative">
-                            <div className="sticky top-0 h-screen w-full flex flex-col justify-center overflow-hidden">
-                                <div className="container mx-auto px-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                                    <div>
-                                        <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
-                                        <h2 className="font-sans text-2xl md:text-4xl text-white font-light">Work Highlights</h2>
-                                    </div>
-                                    <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold text-sm md:text-base"> View All Works → </Link>
+                    <section id="work-section" className="relative z-20 bg-dark-bg py-16">
+                        <div className="container mx-auto px-6">
+                            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                                <div>
+                                    <p className="tracking-widest uppercase text-sm mb-4 text-gray-500 text-left">(02) WORKS</p>
+                                    <h2 className="font-sans text-2xl md:text-4xl text-white font-light">Work Highlights</h2>
                                 </div>
-                                <div className="horizontal-scroll-wrapper">
-                                    <div ref={horizontalTrackRef} className="horizontal-scroll-track">
-                                        {projects.map(project => (
-                                            <Link to={`/portfolio/${project.id}`} key={project.id} className="work-gallery-item group block relative">
-                                                <img src={project.thumbnail} alt={project.title} />
-                                                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-6">
-                                                     <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                                                        <h3 className="font-sans text-2xl text-white font-bold">{project.title}</h3>
-                                                        <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
-                                                    </div>
+                                <Link to="/portfolio" className="animated-link-underline-light text-white font-semibold text-sm md:text-base"> View All Works → </Link>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {projects.map(project => (
+                                    <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden bg-dark-card border border-dark-border">
+                                        <div className="relative w-full pt-[66%]">
+                                            <img src={project.thumbnail} alt={project.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                                                <div>
+                                                    <h3 className="font-sans text-lg md:text-xl text-white font-bold">{project.title}</h3>
+                                                    <p className="text-xs md:text-sm text-gray-300">{project.client}</p>
                                                 </div>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         </div>
                     </section>
@@ -1299,7 +1166,7 @@ export const AdminBlogEditor: React.FC = () => {
                         const range = quill.getSelection(true);
                         if (range) {
                             quill.insertEmbed(range.index, 'image', imageUrl);
-                            quill.setSelection(range.index + 1);
+                            quill.setSelection({ index: range.index + 1, length: 0 });
                         }
                     }
                 } catch (error) {
