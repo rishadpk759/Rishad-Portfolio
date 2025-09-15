@@ -446,156 +446,35 @@ export const PortfolioPage: React.FC = () => {
     const { projects } = useData();
     const [selectedCategory, setSelectedCategory] = useState('All');
     
-    const wrapperRef = useRef<HTMLDivElement>(null);
-    const trackRef = useRef<HTMLDivElement>(null);
-    const progressBarRef = useRef<HTMLDivElement>(null);
-    
     const filteredProjects = projects.filter(p => selectedCategory === 'All' || p.category === selectedCategory);
-
     
-    useEffect(() => {
-        const wrapper = wrapperRef.current;
-        const track = trackRef.current;
-        if (!wrapper || !track) return;
-        
-        let maxScroll = 0;
-        let wrapperHeight = 0;
-        let startBuffer = 0; // vertical distance to scroll inside sticky before horizontal starts
-        let isDesktop = window.innerWidth >= 768; // md breakpoint
-        
-        const setupScroll = () => {
-            isDesktop = window.innerWidth >= 768;
-            
-            if (isDesktop) {
-                // Desktop: Horizontal scroll
-                maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-                startBuffer = window.innerHeight; // begin horizontal after one viewport scrolled while pinned
-                wrapperHeight = window.innerHeight + startBuffer + maxScroll;
-                wrapper.style.height = `${wrapperHeight}px`;
-
-                // Center initial position
-                const firstItem = track.querySelector('.portfolio-gallery-item') as HTMLElement;
-                if (firstItem) {
-                    const viewportWidth = window.innerWidth;
-                    const firstItemWidth = firstItem.offsetWidth;
-                    const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-                    const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
-                    const initialX = centerOffset - trackPaddingLeft;
-                    track.style.transform = `translateX(${initialX}px)`;
-                }
-            } else {
-                // Mobile: Normal vertical scroll
-                wrapper.style.height = 'auto';
-                maxScroll = 0;
-            }
-        };
-        
-        const handleScroll = () => {
-            if (!isDesktop || maxScroll <= 0) return;
-            
-            const wrapperTop = wrapper.offsetTop;
-            const scrollY = window.scrollY;
-            const scrollInWrapper = scrollY - wrapperTop;
-            const pinDuration = wrapperHeight - window.innerHeight;
-            const inHorizontal = scrollInWrapper >= startBuffer && scrollInWrapper < startBuffer + maxScroll;
-            const progressRaw = Math.max(0, Math.min(1, (scrollInWrapper - startBuffer) / maxScroll));
-            
-            // Center the first image initially, then scroll left
-            const firstItem = track.querySelector('.portfolio-gallery-item') as HTMLElement;
-            if (!firstItem) return;
-            
-            const viewportWidth = window.innerWidth;
-            const firstItemWidth = firstItem.offsetWidth;
-            const centerOffset = (viewportWidth / 2) - (firstItemWidth / 2);
-            const trackPaddingLeft = parseFloat(getComputedStyle(track).paddingLeft) || 0;
-            const initialX = centerOffset - trackPaddingLeft;
-            
-            if (inHorizontal) {
-                const translateX = initialX - (progressRaw * maxScroll);
-                if (trackRef.current) trackRef.current.style.transform = `translateX(${translateX}px)`;
-                if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `${progressRaw}`);
-            } else {
-                if (scrollInWrapper < startBuffer) {
-                    if (trackRef.current) trackRef.current.style.transform = `translateX(${initialX}px)`;
-                    if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `0`);
-                } else if (scrollInWrapper >= startBuffer + maxScroll) {
-                    if (trackRef.current) trackRef.current.style.transform = `translateX(${initialX - maxScroll}px)`;
-                    if (progressBarRef.current) progressBarRef.current.style.setProperty('--progress', `1`);
-                }
-            }
-        };
-        
-        const handleWheel = (e: WheelEvent) => {
-            if (!isDesktop || maxScroll <= 0) return;
-            
-            const wrapperTop = wrapper.offsetTop;
-            const scrollY = window.scrollY;
-            const scrollInWrapper = scrollY - wrapperTop;
-            const pinDuration = wrapperHeight - window.innerHeight;
-            
-            // Only handle wheel when in the pinned section
-            if (scrollInWrapper > 0 && scrollInWrapper < pinDuration) {
-                e.preventDefault();
-                
-                const scrollSpeed = 2; // match Work section feel
-                const deltaY = e.deltaY;
-                // Constrain inside horizontal range to begin after the buffer
-                const minY = wrapperTop + startBuffer;
-                const maxY = wrapperTop + startBuffer + maxScroll;
-                const newScrollY = Math.max(minY, Math.min(maxY, scrollY + deltaY * scrollSpeed));
-                
-                window.scrollTo(0, newScrollY);
-            }
-        };
-        
-        // Initial setup
-        setupScroll();
-        handleScroll();
-        
-        // Event listeners
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', setupScroll);
-        window.addEventListener('wheel', handleWheel, { passive: false });
-        
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('resize', setupScroll);
-            window.removeEventListener('wheel', handleWheel);
-        };
-    }, [filteredProjects]);
 
     return (
-        <div ref={wrapperRef} className="portfolio-page-wrapper animate-fadeIn">
-            <div className="portfolio-sticky-container">
-                <div className="container mx-auto px-6 pt-20 flex-shrink-0">
-                    <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(03) PORTFOLIO</p>
-                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
-                    <div className="category-filters">
-                        {PORTFOLIO_CATEGORIES.map(category => (
-                            <button key={category} onClick={() => setSelectedCategory(category)} className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}>
-                                {category}
-                            </button>
-                        ))}
-                    </div>
+        <div className="animate-fadeIn">
+            <div className="container mx-auto px-6 pt-20">
+                <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(03) PORTFOLIO</p>
+                <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
+                <div className="category-filters">
+                    {PORTFOLIO_CATEGORIES.map(category => (
+                        <button key={category} onClick={() => setSelectedCategory(category)} className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}>
+                            {category}
+                        </button>
+                    ))}
                 </div>
-                
-                <div className="portfolio-gallery-container">
-                    <div ref={trackRef} className="portfolio-gallery-track">
-                        {filteredProjects.map(project => (
-                            <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative">
-                                <img src={project.thumbnail} alt={project.title} />
-                                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-6">
-                                    <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                                        <h3 className="font-sans text-2xl text-white font-bold">{project.title}</h3>
-                                        <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
-                                    </div>
+            </div>
+            <div className="container mx-auto px-6 pb-12">
+                <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 [column-fill:_balance]">
+                    {filteredProjects.map(project => (
+                        <Link to={`/portfolio/${project.id}`} key={project.id} className="group block mb-6 break-inside-avoid relative">
+                            <img src={project.thumbnail} alt={project.title} className="w-full h-auto object-cover rounded-lg shadow-lg transition-transform duration-300 group-hover:scale-[1.01]" />
+                            <div className="absolute inset-0 rounded-lg bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <h3 className="font-sans text-xl md:text-2xl text-white font-bold">{project.title}</h3>
+                                    <p className="text-sm text-gray-300">{project.client}</p>
                                 </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-                <div className="portfolio-progress-bar-container">
-                    <div ref={progressBarRef} className="portfolio-progress-bar"></div>
+                            </div>
+                        </Link>
+                    ))}
                 </div>
             </div>
         </div>
