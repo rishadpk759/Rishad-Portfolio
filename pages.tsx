@@ -456,7 +456,7 @@ export const PortfolioPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
             </div>
             <div className="container mx-auto px-6 pb-12">
-                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]"><!-- Masonry columns -->
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
                     {filteredProjects.map(project => (
                         <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative mb-6 break-inside-avoid">
                             <img src={project.thumbnail} alt={project.title} className="w-full h-auto block rounded-lg shadow-lg" />
