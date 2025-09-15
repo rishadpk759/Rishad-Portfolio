@@ -456,33 +456,18 @@ export const PortfolioPage: React.FC = () => {
                 <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
             </div>
             <div className="container mx-auto px-6 pb-12">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-                    <aside className="hidden md:block md:col-span-3 lg:col-span-2">
-                        <div className="sticky top-24">
-                            <div className="flex flex-col items-start space-y-3 category-filters">
-                                {PORTFOLIO_CATEGORIES.map(category => (
-                                    <button key={category} onClick={() => setSelectedCategory(category)} className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}>
-                                        {category}
-                                    </button>
-                                ))}
+                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]"><!-- Masonry columns -->
+                    {filteredProjects.map(project => (
+                        <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative mb-6 break-inside-avoid">
+                            <img src={project.thumbnail} alt={project.title} className="w-full h-auto block rounded-lg shadow-lg" />
+                            <div className="absolute inset-0 rounded-lg bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <h3 className="font-sans text-lg md:text-xl text-white font-bold">{project.title}</h3>
+                                    <p className="text-xs md:text-sm text-gray-300">{project.client}</p>
+                                </div>
                             </div>
-                        </div>
-                    </aside>
-                    <section className="md:col-span-9 lg:col-span-10">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                            {filteredProjects.map(project => (
-                                <Link to={`/portfolio/${project.id}`} key={project.id} className="portfolio-gallery-item group block relative">
-                                    <img src={project.thumbnail} alt={project.title} />
-                                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-6">
-                                        <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                                            <h3 className="font-sans text-2xl text-white font-bold">{project.title}</h3>
-                                            <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
+                        </Link>
+                    ))}
                 </div>
             </div>
         </div>
