@@ -1,13 +1,12 @@
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
-import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage } from './components';
+import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage, MarqueeGallery } from './components';
 import { SiLinkedin, SiInstagram, SiFacebook, SiBehance } from 'react-icons/si';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+const ReactQuill = React.lazy(() => import('react-quill'));
 import { supabase } from './supabaseClient';
 
 // LAYOUTS
@@ -253,27 +252,7 @@ export const HomePage: React.FC = () => {
                                     <Link to="/portfolio" className="animated-link-underline-light text-gray-200 hover:text-white font-semibold text-sm md:text-base">View All →</Link>
                                 </div>
                             </div>
-                            <div className="mt-8 grid grid-cols-1 gap-8">
-                                {projects.slice(0, Math.min(12, projects.length)).map((project) => (
-                                    <Link key={project.id} to={`/portfolio`} className="group block">
-                                        <div className="relative overflow-hidden rounded-xl bg-white/5 border border-dark-border">
-                                            <div className="w-full aspect-[3/2] relative">
-                                                <LazyImage src={project.thumbnail} alt={project.title} className="w-full h-full object-cover" />
-                                                <div className="pointer-events-none absolute inset-0 z-10">
-                                                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                                    <div className="absolute inset-0 flex items-end">
-                                                        <div className="p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                            <div className="inline-block px-2 py-1 rounded bg-black/80">
-                                                                <h3 className="font-sans text-sm md:text-base font-semibold text-white drop-shadow truncate max-w-[90%]">{project.title}</h3>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
+                            <MarqueeGallery items={projects.map(p => ({ id: p.id, src: p.thumbnail, alt: p.title }))} />
                         </div>
                     </section>
                 </div>
@@ -1318,7 +1297,19 @@ export const AdminBlogEditor: React.FC = () => {
     const { blogPosts, addBlogPost, updateBlogPost } = useData();
     const isEditMode = id !== undefined;
     const [post, setPost] = useState(BLANK_POST);
-    const quillRef = useRef<ReactQuill>(null);
+    const quillRef = useRef<any>(null);
+
+    // Load Quill CSS on demand to reduce initial bundle cost
+    useEffect(() => {
+        const id = 'quill-snow-css';
+        if (!document.getElementById(id)) {
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/react-quill@1.3.7/dist/quill.snow.css';
+            document.head.appendChild(link);
+        }
+    }, []);
 
     useEffect(() => {
         if (isEditMode) {
@@ -1483,15 +1474,17 @@ export const AdminBlogEditor: React.FC = () => {
                     </div>
                     <div>
                         <label className="form-label-light block mb-2">Content</label>
-                        <ReactQuill
-                            ref={quillRef}
-                            theme="snow"
-                            value={post.content || ''}
-                            onChange={handleContentChange}
-                            modules={modules}
-                            formats={formats}
-                            className="admin-rte-container"
-                        />
+                        <Suspense fallback={<div className="p-4 text-gray-500">Loading editor…</div>}>
+                            <ReactQuill
+                                ref={quillRef as any}
+                                theme="snow"
+                                value={post.content || ''}
+                                onChange={handleContentChange}
+                                modules={modules}
+                                formats={formats}
+                                className="admin-rte-container"
+                            />
+                        </Suspense>
                     </div>
                 </div>
 

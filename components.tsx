@@ -267,6 +267,100 @@ export const LazyImage: React.FC<{ src: string; alt: string; className?: string;
     );
 };
 
+// --- NEW: Marquee Gallery ---
+export const MarqueeGallery: React.FC<{ items: { id: string; src: string; alt: string }[] }> = ({ items }) => {
+    const trackRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const dragState = useRef<{ startX: number; scrollLeft: number }>({ startX: 0, scrollLeft: 0 });
+
+    // Duplicate items to create seamless loop
+    const smallItems = items.map(i => ({ ...i }));
+    const duplicated = [...smallItems, ...smallItems, ...smallItems];
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        // Start from middle copy to allow dragging both ways
+        const oneWidth = el.scrollWidth / 3;
+        el.scrollLeft = oneWidth;
+    }, [items.length]);
+
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+        let rafId: number;
+        const speedPxPerFrame = 0.5; // subtle, smooth
+        const animate = () => {
+            if (!isPaused && !isDragging) {
+                el.scrollLeft += speedPxPerFrame;
+                const oneWidth = el.scrollWidth / 3;
+                if (el.scrollLeft >= oneWidth * 2) {
+                    el.scrollLeft -= oneWidth;
+                }
+            }
+            rafId = requestAnimationFrame(animate);
+        };
+        rafId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(rafId);
+    }, [isPaused, isDragging]);
+
+    const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
+        const el = containerRef.current;
+        if (!el) return;
+        setIsDragging(true);
+        el.setPointerCapture(e.pointerId);
+        dragState.current.startX = e.clientX;
+        dragState.current.scrollLeft = el.scrollLeft;
+    };
+
+    const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
+        if (!isDragging) return;
+        const el = containerRef.current;
+        if (!el) return;
+        const dx = e.clientX - dragState.current.startX;
+        el.scrollLeft = dragState.current.scrollLeft - dx;
+        const oneWidth = el.scrollWidth / 3;
+        if (el.scrollLeft <= oneWidth * 0.5) el.scrollLeft += oneWidth;
+        if (el.scrollLeft >= oneWidth * 2.5) el.scrollLeft -= oneWidth;
+    };
+
+    const onPointerUpOrLeave: React.PointerEventHandler<HTMLDivElement> = (e) => {
+        setIsDragging(false);
+        const el = containerRef.current;
+        if (!el) return;
+        try { el.releasePointerCapture((e as any).pointerId); } catch {}
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            className="relative overflow-hidden group cursor-grab active:cursor-grabbing select-none"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUpOrLeave}
+            onPointerLeave={onPointerUpOrLeave}
+        >
+            <div ref={trackRef} className="flex items-center gap-4 py-2">
+                {duplicated.map((item, idx) => (
+                    <img
+                        key={`${item.id}-${idx}`}
+                        src={item.src}
+                        alt={item.alt}
+                        className="h-24 w-auto object-cover rounded-md border border-white/10 shadow-sm"
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // --- Minimal Icons ---
 export const IconLinkedIn: React.FC<{ className?: string; size?: number }> = ({ className, size = 24 }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

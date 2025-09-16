@@ -40,7 +40,24 @@ const uploadBase64Image = async (base64String: string, bucket: string): Promise<
     if (!base64String.startsWith('data:image')) {
         return base64String; // It's already a URL, so no need to upload
     }
-    const file = dataURLtoFile(base64String, `upload-${Date.now()}`);
+    // Basic size validation (max 5MB) for base64 data URLs
+    try {
+        const commaIndex = base64String.indexOf(',');
+        const base64Payload = commaIndex >= 0 ? base64String.slice(commaIndex + 1) : base64String;
+        const approxBytes = Math.floor((base64Payload.length * 3) / 4) - (base64Payload.endsWith('==') ? 2 : base64Payload.endsWith('=') ? 1 : 0);
+        const maxBytes = 5 * 1024 * 1024;
+        if (approxBytes > maxBytes) {
+            throw new Error('Image too large (max 5MB)');
+        }
+    } catch (e) {
+        // If parsing fails for any reason, let the upload attempt throw the actual error
+        if (e instanceof Error && e.message.includes('Image too large')) {
+            throw e;
+        }
+    }
+
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const file = dataURLtoFile(base64String, `upload-${uniqueSuffix}`);
     const filePath = `${bucket}/${file.name}`;
 
     const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
@@ -136,7 +153,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const addProject = async (projectData: Omit<Project, 'id'>) => {
         try {
             const thumbnail = await uploadBase64Image(projectData.thumbnail, 'thumbnails');
-            const images = await Promise.all(projectData.images.map(img => uploadBase64Image(img, 'project-images')));
+            // Upload images sequentially to avoid rate limits and filename collisions
+            const images: string[] = [];
+            for (const img of projectData.images) {
+                const url = await uploadBase64Image(img, 'project-images');
+                images.push(url);
+            }
             
             const { data, error } = await supabase.from('projects').insert([{...projectData, thumbnail, images}]).select();
             if (error) throw error;
@@ -150,7 +172,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const updateProject = async (updatedProject: Project) => {
         try {
             const thumbnail = await uploadBase64Image(updatedProject.thumbnail, 'thumbnails');
-            const images = await Promise.all(updatedProject.images.map(img => uploadBase64Image(img, 'project-images')));
+            // Upload images sequentially to avoid rate limits and filename collisions
+            const images: string[] = [];
+            for (const img of updatedProject.images) {
+                const url = await uploadBase64Image(img, 'project-images');
+                images.push(url);
+            }
             
             const { data, error } = await supabase.from('projects').update({...updatedProject, thumbnail, images}).eq('id', updatedProject.id).select();
             if (error) throw error;
