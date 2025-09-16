@@ -243,15 +243,17 @@ export const HomePage: React.FC = () => {
                         </div>
                     </section>
                     
-                    <section id="work-section" className="relative z-20 bg-dark-bg py-20">
+                    <section id="work-section" className="relative z-20 bg-dark-bg flex flex-col justify-center" style={{ minHeight: '100vh' }}>
                         <div className="container mx-auto px-6">
-                            <div className="mb-10">
+                            <div className="mb-12">
                                 <p className="tracking-widest uppercase text-sm mb-4 text-gray-400">(02) WORKS</p>
                                 <div className="flex items-end justify-between">
                                     <h2 className="font-sans text-3xl md:text-5xl text-white font-light">Work Highlights</h2>
                                     <Link to="/portfolio" className="animated-link-underline-light text-gray-200 hover:text-white font-semibold text-sm md:text-base">View All →</Link>
                                 </div>
                             </div>
+                        </div>
+                        <div style={{ width: '100vw', marginLeft: '50%', transform: 'translateX(-50%)' }}>
                             <MarqueeGallery items={projects.map(p => ({ id: p.id, src: p.thumbnail, alt: p.title }))} />
                         </div>
                     </section>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Project, BlogPost } from './types';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -273,90 +273,194 @@ export const MarqueeGallery: React.FC<{ items: { id: string; src: string; alt: s
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isPaused, setIsPaused] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const dragState = useRef<{ startX: number; scrollLeft: number }>({ startX: 0, scrollLeft: 0 });
+    const [galleryHeight, setGalleryHeight] = useState(380);
+    const offsetRef = useRef(0);
+    const isPausedRef = useRef(false);
+    const isDraggingRef = useRef(false);
+    const dragStartRef = useRef<number | null>(null);
+    const dragOffsetStartRef = useRef<number>(0);
+    const [isVisible, setIsVisible] = useState(true);
+    const [reducedMotion, setReducedMotion] = useState(false);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-    // Duplicate items to create seamless loop
-    const smallItems = items.map(i => ({ ...i }));
-    const duplicated = [...smallItems, ...smallItems, ...smallItems];
+    // Duplicate items memoized
+    const duplicated = useMemo(() => {
+        const smallItems = items.map(i => ({ ...i }));
+        return [...smallItems, ...smallItems, ...smallItems];
+    }, [items]);
 
+    useEffect(() => {
+        const computeHeight = () => {
+            const w = window.innerWidth;
+            setGalleryHeight(w < 768 ? 220 : 380);
+        };
+        computeHeight();
+        window.addEventListener('resize', computeHeight);
+        return () => window.removeEventListener('resize', computeHeight);
+    }, []);
+
+    // Touch capability detection
+    useEffect(() => {
+        const touchCapable = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        setIsTouchDevice(touchCapable);
+    }, []);
+
+    // Reduced motion preference
+    useEffect(() => {
+        const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const update = () => setReducedMotion(mq.matches);
+        update();
+        mq.addEventListener?.('change', update);
+        return () => mq.removeEventListener?.('change', update);
+    }, []);
+
+    // Visibility via IntersectionObserver
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        // Start from middle copy to allow dragging both ways
-        const oneWidth = el.scrollWidth / 3;
-        el.scrollLeft = oneWidth;
-    }, [items.length]);
-
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-        let rafId: number;
-        const speedPxPerFrame = 0.5; // subtle, smooth
-        const animate = () => {
-            if (!isPaused && !isDragging) {
-                el.scrollLeft += speedPxPerFrame;
-                const oneWidth = el.scrollWidth / 3;
-                if (el.scrollLeft >= oneWidth * 2) {
-                    el.scrollLeft -= oneWidth;
+        const io = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.target === el) {
+                    setIsVisible(entry.isIntersecting);
                 }
             }
-            rafId = requestAnimationFrame(animate);
+        }, { threshold: 0.05 });
+        io.observe(el);
+        return () => io.disconnect();
+    }, []);
+
+    // No need to set scrollLeft for transform-based animation
+
+    // Sync state to refs so the RAF loop doesn't reset on hover
+    useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+    useEffect(() => { isDraggingRef.current = isDragging; }, [isDragging]);
+
+    // Time-based animation loop (consistent across refresh rates)
+    useEffect(() => {
+        const track = trackRef.current;
+        if (!track) return;
+        let rafId: number;
+        let lastTs = 0;
+        const pixelsPerSecond = 60; // base speed
+        const step = (ts: number) => {
+            if (lastTs === 0) lastTs = ts;
+            const dtSec = (ts - lastTs) / 1000;
+            lastTs = ts;
+
+            const shouldRun = !reducedMotion && isVisible && !isPausedRef.current && !isDraggingRef.current;
+            if (shouldRun) {
+                const delta = pixelsPerSecond * dtSec;
+                offsetRef.current -= delta;
+                const copyWidth = track.scrollWidth / 3;
+                if (copyWidth > 0) {
+                    if (Math.abs(offsetRef.current) >= copyWidth) offsetRef.current += copyWidth;
+                }
+                track.style.transform = `translateX(${offsetRef.current}px)`;
+            }
+            rafId = requestAnimationFrame(step);
         };
-        rafId = requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(step);
         return () => cancelAnimationFrame(rafId);
-    }, [isPaused, isDragging]);
+    }, [reducedMotion, isVisible]);
 
-    const onPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
-        const el = containerRef.current;
-        if (!el) return;
-        setIsDragging(true);
-        el.setPointerCapture(e.pointerId);
-        dragState.current.startX = e.clientX;
-        dragState.current.scrollLeft = el.scrollLeft;
-    };
-
-    const onPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-        if (!isDragging) return;
-        const el = containerRef.current;
-        if (!el) return;
-        const dx = e.clientX - dragState.current.startX;
-        el.scrollLeft = dragState.current.scrollLeft - dx;
-        const oneWidth = el.scrollWidth / 3;
-        if (el.scrollLeft <= oneWidth * 0.5) el.scrollLeft += oneWidth;
-        if (el.scrollLeft >= oneWidth * 2.5) el.scrollLeft -= oneWidth;
-    };
-
-    const onPointerUpOrLeave: React.PointerEventHandler<HTMLDivElement> = (e) => {
-        setIsDragging(false);
-        const el = containerRef.current;
-        if (!el) return;
-        try { el.releasePointerCapture((e as any).pointerId); } catch {}
-    };
+    // Dragging disabled for transform-based animation
 
     return (
         <div
             ref={containerRef}
-            className="relative overflow-hidden group cursor-grab active:cursor-grabbing select-none"
+            className="relative overflow-hidden group select-none"
+            style={{ height: galleryHeight, maxHeight: '60vh', cursor: isPaused && !isTouchDevice ? 'none' : 'default' }}
+            tabIndex={0}
+            onFocus={() => setIsPaused(true)}
+            onBlur={() => setIsPaused(false)}
             onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUpOrLeave}
-            onPointerLeave={onPointerUpOrLeave}
+            onMouseLeave={() => { setIsPaused(false); setIsDragging(false); dragStartRef.current = null; }}
+            onMouseMove={(e) => {
+                const el = containerRef.current;
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                el.style.setProperty('--cursor-x', `${x}px`);
+                el.style.setProperty('--cursor-y', `${y}px`);
+            }}
+            onPointerDown={(e) => {
+                setIsDragging(true);
+                dragStartRef.current = e.clientX;
+                dragOffsetStartRef.current = offsetRef.current;
+            }}
+            onPointerMove={(e) => {
+                if (!isDraggingRef.current || dragStartRef.current === null) return;
+                const dx = e.clientX - dragStartRef.current;
+                offsetRef.current = dragOffsetStartRef.current + dx;
+                const track = trackRef.current;
+                if (track) {
+                    const copyWidth = track.scrollWidth / 3;
+                    if (copyWidth > 0) {
+                        if (offsetRef.current <= -copyWidth) offsetRef.current += copyWidth;
+                        if (offsetRef.current >= 0) offsetRef.current -= copyWidth;
+                    }
+                    track.style.transform = `translateX(${offsetRef.current}px)`;
+                }
+            }}
+            onPointerUp={() => { setIsDragging(false); dragStartRef.current = null; }}
+            onPointerLeave={() => { setIsDragging(false); dragStartRef.current = null; }}
         >
-            <div ref={trackRef} className="flex items-center gap-4 py-2">
+            <div ref={trackRef} className="flex items-center gap-6" style={{ height: '100%', willChange: 'transform', paddingLeft: '2vw', paddingRight: '2vw' }}>
+                {duplicated.length === 0 && (
+                    <div className="w-full text-center" style={{ opacity: 0.7 }}>
+                        No projects yet.
+                    </div>
+                )}
                 {duplicated.map((item, idx) => (
-                    <img
-                        key={`${item.id}-${idx}`}
-                        src={item.src}
-                        alt={item.alt}
-                        className="h-24 w-auto object-cover rounded-md border border-white/10 shadow-sm"
-                        loading="lazy"
-                        decoding="async"
-                        draggable={false}
-                    />
+                    <div key={`${item.id}-${idx}`} className="flex items-center justify-center px-2" style={{ height: '100%' }}>
+                        <img
+                            src={item.src}
+                            alt={item.alt}
+                            className="block object-contain"
+                            style={{ height: '100%', width: 'auto', maxHeight: '100%', maxWidth: 'none', display: 'block' }}
+                            loading="lazy"
+                            decoding="async"
+                            draggable={false}
+                        />
+                    </div>
                 ))}
             </div>
+            {isPaused && !isTouchDevice && (
+                <div
+                    aria-hidden
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: 'var(--cursor-y, 50%)',
+                            left: 'var(--cursor-x, 50%)',
+                            transform: 'translate(-50%, -50%)',
+                            width: 80,
+                            height: 80,
+                            borderRadius: 80,
+                            backgroundColor: '#000',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 12,
+                            textTransform: 'uppercase'
+                        }}
+                    >
+                        drag
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
