@@ -747,10 +747,26 @@ export const ServicesPage: React.FC = () => {
 };
 
 // --- ADMIN PAGES ---
-const AdminButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger', size?: 'sm' | 'md' }> = ({ children, variant = 'primary', size = 'md', ...props }) => {
+const AdminButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger', size?: 'sm' | 'md', loading?: boolean }> = ({ children, variant = 'primary', size = 'md', loading = false, disabled, ...props }) => {
     const variants = { primary: 'btn-admin-primary', secondary: 'btn-admin-secondary', danger: 'btn-admin-danger' };
     const sizes = { sm: 'sm', md: '' };
-    return <button {...props} className={`btn-admin ${variants[variant]} ${sizes[size]}`}>{children}</button>;
+    return (
+        <button 
+            {...props} 
+            disabled={disabled || loading}
+            className={`btn-admin ${variants[variant]} ${sizes[size]} ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+        >
+            {loading ? (
+                <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                </div>
+            ) : children}
+        </button>
+    );
 };
 
 const handleFileRead = (file: File, callback: (result: string) => void) => {
@@ -934,6 +950,8 @@ export const AdminSettingsPage: React.FC = () => {
     const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const [passwordMessage, setPasswordMessage] = useState('');
     const [showPasswordForm, setShowPasswordForm] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
     useEffect(() => { setFormState(settings); }, [settings]);
 
@@ -956,6 +974,7 @@ export const AdminSettingsPage: React.FC = () => {
     };
     
     const handleSave = async () => {
+        setIsSaving(true);
         try {
             await updateSettings(formState);
             setShowSuccess(true);
@@ -963,6 +982,8 @@ export const AdminSettingsPage: React.FC = () => {
         } catch (error) {
             console.error('Error saving settings:', error);
             alert("Failed to save settings. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -985,6 +1006,7 @@ export const AdminSettingsPage: React.FC = () => {
             return;
         }
 
+        setIsUpdatingPassword(true);
         try {
             const result = await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
             setPasswordMessage(result.message);
@@ -995,6 +1017,8 @@ export const AdminSettingsPage: React.FC = () => {
             }
         } catch (error) {
             setPasswordMessage('Failed to update password. Please try again.');
+        } finally {
+            setIsUpdatingPassword(false);
         }
     };
 
@@ -1081,8 +1105,8 @@ export const AdminSettingsPage: React.FC = () => {
                                 </div>
                             )}
                             <div className="flex space-x-4">
-                                <AdminButton type="submit">Update Password</AdminButton>
-                                <AdminButton type="button" variant="secondary" onClick={() => setShowPasswordForm(false)}>
+                                <AdminButton type="submit" loading={isUpdatingPassword}>Update Password</AdminButton>
+                                <AdminButton type="button" variant="secondary" onClick={() => setShowPasswordForm(false)} disabled={isUpdatingPassword}>
                                     Cancel
                                 </AdminButton>
                             </div>
@@ -1130,7 +1154,7 @@ export const AdminSettingsPage: React.FC = () => {
 
                  <div className="text-right flex items-center justify-end">
                     {showSuccess && <p className="text-black mr-4">Settings saved successfully!</p>}
-                    <AdminButton onClick={handleSave}>Save Settings</AdminButton>
+                    <AdminButton onClick={handleSave} loading={isSaving}>Save Settings</AdminButton>
                 </div>
             </div>
         </div>
@@ -1146,6 +1170,7 @@ export const AdminPortfolioEditor: React.FC = () => {
     const isEditMode = id !== undefined;
 
     const [project, setProject] = useState(BLANK_PROJECT);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (isEditMode) {
@@ -1238,6 +1263,7 @@ export const AdminPortfolioEditor: React.FC = () => {
             return;
         }
         
+        setIsSubmitting(true);
         try {
             if (isEditMode) {
                 await updateProject({ ...project, id });
@@ -1248,6 +1274,8 @@ export const AdminPortfolioEditor: React.FC = () => {
         } catch (error) {
             console.error('Error saving project:', error);
             alert("Failed to save project. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -1381,8 +1409,8 @@ export const AdminPortfolioEditor: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                    <Link to="/admin/portfolio"><AdminButton type="button" variant="secondary">Cancel</AdminButton></Link>
-                    <AdminButton type="submit">{isEditMode ? 'Save Changes' : 'Create Project'}</AdminButton>
+                    <Link to="/admin/portfolio"><AdminButton type="button" variant="secondary" disabled={isSubmitting}>Cancel</AdminButton></Link>
+                    <AdminButton type="submit" loading={isSubmitting}>{isEditMode ? 'Save Changes' : 'Create Project'}</AdminButton>
                 </div>
             </form>
         </div>
@@ -1395,6 +1423,7 @@ export const AdminServicesManager: React.FC = () => {
     const [services, setServices] = useState(SERVICES);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     const handleFileChange = (index: number, file: File) => {
         handleFileRead(file, (result) => {
@@ -1404,11 +1433,18 @@ export const AdminServicesManager: React.FC = () => {
         });
     };
 
-    const handleSave = () => {
-        // In a real app, you'd save to Supabase here
-        console.log('Saving services:', services);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            // In a real app, you'd save to Supabase here
+            console.log('Saving services:', services);
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -1516,7 +1552,7 @@ export const AdminServicesManager: React.FC = () => {
                 
                 <div className="text-right flex items-center justify-end">
                     {showSuccess && <p className="text-black mr-4">Services updated successfully!</p>}
-                    <AdminButton onClick={handleSave}>Save All Services</AdminButton>
+                    <AdminButton onClick={handleSave} loading={isSaving}>Save All Services</AdminButton>
                 </div>
             </div>
         </div>
@@ -1529,6 +1565,7 @@ export const AdminBlogEditor: React.FC = () => {
     const { blogPosts, addBlogPost, updateBlogPost } = useData();
     const isEditMode = id !== undefined;
     const [post, setPost] = useState(BLANK_POST);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const quillRef = useRef<any>(null);
 
     // Load Quill CSS on demand to reduce initial bundle cost
@@ -1660,6 +1697,7 @@ export const AdminBlogEditor: React.FC = () => {
             return;
         }
         
+        setIsSubmitting(true);
         try {
             if (isEditMode) {
                 await updateBlogPost({ ...post, id, views: blogPosts.find(p=>p.id===id)?.views || 0 });
@@ -1670,6 +1708,8 @@ export const AdminBlogEditor: React.FC = () => {
         } catch (error) {
             console.error('Error saving blog post:', error);
             alert("Failed to save blog post. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
@@ -1721,8 +1761,8 @@ export const AdminBlogEditor: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end space-x-4">
-                    <Link to="/admin/blog"><AdminButton type="button" variant="secondary">Cancel</AdminButton></Link>
-                    <AdminButton type="submit">{isEditMode ? 'Save Changes' : 'Create Post'}</AdminButton>
+                    <Link to="/admin/blog"><AdminButton type="button" variant="secondary" disabled={isSubmitting}>Cancel</AdminButton></Link>
+                    <AdminButton type="submit" loading={isSubmitting}>{isEditMode ? 'Save Changes' : 'Create Post'}</AdminButton>
                 </div>
             </form>
         </div>
