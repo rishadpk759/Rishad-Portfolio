@@ -207,15 +207,15 @@ export const HomePage: React.FC = () => {
 
     return (
         <div className="relative">
-            <div id="home-section" className="fixed top-0 left-0 w-full h-screen z-0 flex items-end justify-center bg-black text-white overflow-hidden animate-fadeIn">
-                <h1 className="hero-text-bg absolute z-0 font-display top-0 pt-16">
-                    {settings.heroName}
-                </h1>
-                <div className="relative z-10">
-                    <img src={settings.heroImage} alt="Rishad PK" className="hero-image select-none animate-slow-zoom" />
+            <div id="home-section" className="fixed top-0 left-0 w-full h-screen z-0 flex items-end bg-black text-white overflow-hidden animate-fadeIn">
+                <div className="relative z-10 w-full h-full">
+                    <img src={settings.heroImage} alt="Rishad PK" className="w-full h-full object-cover select-none animate-slow-zoom" />
                 </div>
-                <div className="home-hero-subtext">
-                    <p className="font-sans text-xl text-gray-300 leading-relaxed h-8">
+                <div className="absolute bottom-0 left-0 z-20 p-4" style={{ paddingBottom: isMobile ? '60px' : '120px', paddingLeft: isMobile ? '32px' : '120px' }}>
+                    <h1 className="font-sans text-6xl md:text-8xl lg:text-9xl font-light text-white leading-tight mb-1 md:mb-3">
+                        {settings.heroName}
+                    </h1>
+                    <p className="font-sans text-2xl text-gray-300 leading-relaxed">
                        {displayedRole}
                        <span className="typing-cursor"></span>
                     </p>
@@ -764,29 +764,62 @@ export const AdminLoginPage: React.FC = () => {
     const navigate = useNavigate();
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (password === 'admin') {
-            login();
-            navigate('/admin');
-        } else {
-            setError('Invalid password');
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const result = await login(password);
+            if (result.success) {
+                navigate('/admin');
+            } else {
+                setError(result.message);
+            }
+        } catch (error) {
+            setError('Login failed. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
         <div className="h-screen flex items-center justify-center admin-light-theme">
             <div className="w-full max-w-sm p-8 admin-card">
-                <h1 className="font-sans text-3xl font-bold tracking-widest text-center">ADMIN LOGIN</h1>
-                <form onSubmit={handleLogin} className="mt-8 space-y-6">
+                <h1 className="font-sans text-3xl font-bold tracking-widest text-center mb-2">ADMIN LOGIN</h1>
+                <p className="text-center text-gray-600 text-sm mb-8">Secure access to portfolio management</p>
+                <form onSubmit={handleLogin} className="space-y-6">
                     <div>
                         <label className="form-label-light block mb-2">Password</label>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="form-input-admin-light" />
+                        <input 
+                            type="password" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            placeholder="Enter admin password" 
+                            className="form-input-admin-light" 
+                            disabled={isLoading}
+                            required
+                        />
                     </div>
-                     {error && <p className="text-red-500 text-sm">{error}</p>}
-                    <AdminButton type="submit" className="w-full"> Login </AdminButton>
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                            {error}
+                        </div>
+                    )}
+                    <AdminButton 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={isLoading || !password.trim()}
+                    >
+                        {isLoading ? 'Authenticating...' : 'Login'}
+                    </AdminButton>
                 </form>
+                <div className="mt-6 text-center text-xs text-gray-500">
+                    <p>Session persists until manual logout</p>
+                    <p>Failed attempts are rate limited</p>
+                </div>
             </div>
         </div>
     );
@@ -895,9 +928,12 @@ export const AdminBlogManager: React.FC = () => {
 };
 
 export const AdminSettingsPage: React.FC = () => {
-    const { settings, updateSettings } = useData();
+    const { settings, updateSettings, updatePassword } = useData();
     const [formState, setFormState] = useState<SiteSettings>(settings);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [passwordMessage, setPasswordMessage] = useState('');
+    const [showPasswordForm, setShowPasswordForm] = useState(false);
 
     useEffect(() => { setFormState(settings); }, [settings]);
 
@@ -930,6 +966,38 @@ export const AdminSettingsPage: React.FC = () => {
         }
     };
 
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setPasswordForm(prev => ({ ...prev, [name]: value }));
+        setPasswordMessage('');
+    };
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            setPasswordMessage('New passwords do not match.');
+            return;
+        }
+
+        if (passwordForm.newPassword.length < 6) {
+            setPasswordMessage('New password must be at least 6 characters long.');
+            return;
+        }
+
+        try {
+            const result = await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
+            setPasswordMessage(result.message);
+            
+            if (result.success) {
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                setShowPasswordForm(false);
+            }
+        } catch (error) {
+            setPasswordMessage('Failed to update password. Please try again.');
+        }
+    };
+
     return (
         <div>
             <PageTitle subtitle="Update your site's static content and contact info.">Content Settings</PageTitle>
@@ -954,6 +1022,80 @@ export const AdminSettingsPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div className="admin-card p-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-sans text-xl">Security Settings</h3>
+                        <AdminButton 
+                            variant="secondary" 
+                            onClick={() => setShowPasswordForm(!showPasswordForm)}
+                        >
+                            {showPasswordForm ? 'Cancel' : 'Change Password'}
+                        </AdminButton>
+                    </div>
+                    
+                    {showPasswordForm && (
+                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                            <div>
+                                <label className="form-label-light block mb-2">Current Password</label>
+                                <input 
+                                    type="password" 
+                                    name="currentPassword" 
+                                    value={passwordForm.currentPassword} 
+                                    onChange={handlePasswordChange} 
+                                    className="form-input-admin-light"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label-light block mb-2">New Password</label>
+                                <input 
+                                    type="password" 
+                                    name="newPassword" 
+                                    value={passwordForm.newPassword} 
+                                    onChange={handlePasswordChange} 
+                                    className="form-input-admin-light"
+                                    required
+                                    minLength={6}
+                                />
+                            </div>
+                            <div>
+                                <label className="form-label-light block mb-2">Confirm New Password</label>
+                                <input 
+                                    type="password" 
+                                    name="confirmPassword" 
+                                    value={passwordForm.confirmPassword} 
+                                    onChange={handlePasswordChange} 
+                                    className="form-input-admin-light"
+                                    required
+                                />
+                            </div>
+                            {passwordMessage && (
+                                <div className={`px-4 py-3 rounded text-sm ${
+                                    passwordMessage.includes('successfully') 
+                                        ? 'bg-green-50 border border-green-200 text-green-700'
+                                        : 'bg-red-50 border border-red-200 text-red-700'
+                                }`}>
+                                    {passwordMessage}
+                                </div>
+                            )}
+                            <div className="flex space-x-4">
+                                <AdminButton type="submit">Update Password</AdminButton>
+                                <AdminButton type="button" variant="secondary" onClick={() => setShowPasswordForm(false)}>
+                                    Cancel
+                                </AdminButton>
+                            </div>
+                        </form>
+                    )}
+                    
+                    {!showPasswordForm && (
+                        <div className="text-gray-600 text-sm">
+                            <p>• Password must be at least 6 characters long</p>
+                            <p>• Current password: <span className="font-mono">Rishad@759#</span> (default)</p>
+                            <p>• Click "Change Password" to update your admin password</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="admin-card p-6">
@@ -1034,6 +1176,42 @@ export const AdminPortfolioEditor: React.FC = () => {
     const addImageInput = () => setProject(prev => ({ ...prev, images: [...prev.images, ''] }));
     const removeImageInput = (index: number) => {
         if (project.images.length > 1) setProject(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    };
+
+    const moveImageUp = (index: number) => {
+        if (index > 0) {
+            const newImages = [...project.images];
+            [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
+            setProject(prev => ({ ...prev, images: newImages }));
+        }
+    };
+
+    const moveImageDown = (index: number) => {
+        if (index < project.images.length - 1) {
+            const newImages = [...project.images];
+            [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+            setProject(prev => ({ ...prev, images: newImages }));
+        }
+    };
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        e.dataTransfer.setData('text/plain', index.toString());
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+        e.preventDefault();
+        const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        if (dragIndex !== dropIndex) {
+            const newImages = [...project.images];
+            const draggedItem = newImages[dragIndex];
+            newImages.splice(dragIndex, 1);
+            newImages.splice(dropIndex, 0, draggedItem);
+            setProject(prev => ({ ...prev, images: newImages }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -1137,12 +1315,64 @@ export const AdminPortfolioEditor: React.FC = () => {
                                 className="form-input-admin-light file-input"
                             />
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                             {(project.images || []).map((img, index) => (
-                                <div key={index} className="relative">
-                                    <img src={img} alt={`Detail ${index+1} Preview`} className="image-preview-admin h-24 w-full object-cover" />
-                                    <div className="mt-2 flex justify-between">
-                                        <AdminButton type="button" variant="danger" size="sm" onClick={() => removeImageInput(index)}>Remove</AdminButton>
+                                <div 
+                                    key={index} 
+                                    className="relative group border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow"
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, index)}
+                                >
+                                    <div className="relative">
+                                        <img 
+                                            src={img} 
+                                            alt={`Detail ${index+1} Preview`} 
+                                            className="w-full h-32 object-cover" 
+                                        />
+                                        <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                                            #{index + 1}
+                                        </div>
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                                                Drag to reorder
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-gray-600">Position {index + 1}</span>
+                                            <div className="flex space-x-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => moveImageUp(index)}
+                                                    disabled={index === 0}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Move up"
+                                                >
+                                                    ↑
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => moveImageDown(index)}
+                                                    disabled={index === project.images.length - 1}
+                                                    className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Move down"
+                                                >
+                                                    ↓
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <AdminButton 
+                                            type="button" 
+                                            variant="danger" 
+                                            size="sm" 
+                                            onClick={() => removeImageInput(index)}
+                                            className="w-full"
+                                        >
+                                            Remove
+                                        </AdminButton>
                                     </div>
                                 </div>
                             ))}

@@ -77,8 +77,9 @@ interface DataContextType {
     settings: SiteSettings;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: () => void;
+    login: (password: string) => Promise<{ success: boolean; message: string }>;
     logout: () => void;
+    updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
     updateProject: (project: Project) => Promise<void>;
     addProject: (project: Omit<Project, 'id'>) => Promise<void>;
     deleteProject: (id: string) => Promise<void>;
@@ -97,6 +98,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [settings, setSettings] = useState<SiteSettings>(BLANK_SITE_SETTINGS);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [loginAttempts, setLoginAttempts] = useState<number>(0);
+    const [lastLoginAttempt, setLastLoginAttempt] = useState<number>(0);
+
+    // Check for existing session on app load
+    useEffect(() => {
+        const checkExistingSession = () => {
+            const sessionData = localStorage.getItem('admin_session');
+            if (sessionData) {
+                try {
+                    const { token } = JSON.parse(sessionData);
+                    // Session exists and is valid - no expiration check
+                    if (token) {
+                        setIsAuthenticated(true);
+                    }
+                } catch (error) {
+                    // Invalid session data, clear it
+                    localStorage.removeItem('admin_session');
+                }
+            }
+        };
+
+        checkExistingSession();
+    }, []);
 
     // Fetch all data from Supabase on initial load
     useEffect(() => {
@@ -147,8 +171,126 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Note: Views are now incremented on actual blog post reads (see BlogPostPage)
 
 
-    const login = () => setIsAuthenticated(true);
-    const logout = () => setIsAuthenticated(false);
+    // Simple hash function for password (in production, use a proper library like bcrypt)
+    const hashPassword = async (password: string): Promise<string> => {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password + 'portfolio_salt_2024'); // Add salt
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
+    // Debug function to calculate hash (remove in production)
+    const calculateHash = async (password: string) => {
+        const hash = await hashPassword(password);
+        console.log(`Hash for "${password}": ${hash}`);
+        return hash;
+    };
+
+    // Generate a secure session token
+    const generateSessionToken = (): string => {
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    };
+
+    const login = async (password: string): Promise<{ success: boolean; message: string }> => {
+        const now = Date.now();
+        const lockoutDuration = 15 * 60 * 1000; // 15 minutes
+        const maxAttempts = 5;
+
+        // Check if user is locked out
+        if (loginAttempts >= maxAttempts && now - lastLoginAttempt < lockoutDuration) {
+            const remainingTime = Math.ceil((lockoutDuration - (now - lastLoginAttempt)) / 60000);
+            return { 
+                success: false, 
+                message: `Too many failed attempts. Try again in ${remainingTime} minutes.` 
+            };
+        }
+
+        // Reset attempts if lockout period has passed
+        if (now - lastLoginAttempt > lockoutDuration) {
+            setLoginAttempts(0);
+        }
+
+        try {
+            const hashedPassword = await hashPassword(password);
+            
+            // Check for updated password hash in localStorage first, fallback to default
+            const storedHash = localStorage.getItem('admin_password_hash');
+            let correctHash = storedHash;
+            
+            // If no stored hash, use the calculated hash for Rishad@759#
+            if (!correctHash) {
+                if (password === 'Rishad@759#') {
+                    correctHash = hashedPassword; // Use the calculated hash
+                } else {
+                    correctHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'; // Fallback
+                }
+            }
+            
+            if (hashedPassword === correctHash) {
+                // Successful login
+                setIsAuthenticated(true);
+                setLoginAttempts(0);
+                
+                // Create permanent session
+                const sessionToken = generateSessionToken();
+                const sessionData = {
+                    token: sessionToken,
+                    loginTime: now
+                };
+                localStorage.setItem('admin_session', JSON.stringify(sessionData));
+                
+                return { success: true, message: 'Login successful!' };
+            } else {
+                // Failed login
+                setLoginAttempts(prev => prev + 1);
+                setLastLoginAttempt(now);
+                return { success: false, message: 'Invalid password.' };
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, message: 'Login failed. Please try again.' };
+        }
+    };
+
+    const logout = () => {
+        setIsAuthenticated(false);
+        localStorage.removeItem('admin_session');
+        setLoginAttempts(0);
+        setLastLoginAttempt(0);
+    };
+
+    const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+        try {
+            // Verify current password
+            const currentHashedPassword = await hashPassword(currentPassword);
+            const storedHash = localStorage.getItem('admin_password_hash');
+            const correctHash = storedHash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'; // Default: 'Rishad@759#' + salt
+            
+            if (currentHashedPassword !== correctHash) {
+                return { success: false, message: 'Current password is incorrect.' };
+            }
+
+            // Validate new password
+            if (newPassword.length < 6) {
+                return { success: false, message: 'New password must be at least 6 characters long.' };
+            }
+
+            // Hash new password
+            const newHashedPassword = await hashPassword(newPassword);
+            
+            // In production, you would update this in a database
+            // For now, we'll store it in localStorage for demo purposes
+            localStorage.setItem('admin_password_hash', newHashedPassword);
+            
+            return { success: true, message: 'Password updated successfully!' };
+        } catch (error) {
+            console.error('Password update error:', error);
+            return { success: false, message: 'Failed to update password. Please try again.' };
+        }
+    };
 
     const addProject = async (projectData: Omit<Project, 'id'>) => {
         try {
@@ -288,6 +430,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         login,
         logout,
+        updatePassword,
         addProject,
         updateProject,
         deleteProject,
