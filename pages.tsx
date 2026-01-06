@@ -2,20 +2,21 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
-import { BottomNavBar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage, MarqueeGallery } from './components';
+import { MainNavbar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage, MarqueeGallery } from './components';
 import { SiLinkedin, SiInstagram, SiFacebook, SiBehance } from 'react-icons/si';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
 const ReactQuill = React.lazy(() => import('react-quill'));
 import { supabase } from './supabaseClient';
+import { initEmailJS, sendContactEmail } from './emailService';
 
 // LAYOUTS
 export const PublicLayout: React.FC = () => (
     <>
-        <main>
+        <MainNavbar />
+        <main className="pt-16 md:pt-20">
             <Outlet />
         </main>
-        <BottomNavBar />
     </>
 );
 
@@ -574,17 +575,38 @@ export const ContactPage: React.FC = () => {
     const [toastMessage, setToastMessage] = useState('');
     const [showToast, setShowToast] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Initialize EmailJS on component mount
+    useEffect(() => {
+        initEmailJS();
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
-        triggerToast("Thanks for your message! I'll be in touch.");
-        setFormData({ name: '', email: '', phone: '', message: '' });
+        
+        if (isSubmitting) return;
+        
+        setIsSubmitting(true);
+        
+        try {
+            const result = await sendContactEmail(formData);
+            triggerToast(result.message);
+            
+            if (result.success) {
+                setFormData({ name: '', email: '', phone: '', message: '' });
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            triggerToast('Failed to send message. Please try again later.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const triggerToast = (message: string) => {
@@ -610,7 +632,13 @@ export const ContactPage: React.FC = () => {
                         <input name="email" type="email" placeholder="Your Email *" value={formData.email} onChange={handleInputChange} required className="w-full form-input-light rounded-md px-4 py-3" />
                         <input name="phone" type="tel" placeholder="Your Phone (Optional)" value={formData.phone} onChange={handleInputChange} className="w-full form-input-light rounded-md px-4 py-3" />
                         <textarea name="message" placeholder="Your Message *" rows={6} value={formData.message} onChange={handleInputChange} required className="w-full form-input-light rounded-md px-4 py-3"></textarea>
-                        <button type="submit" className="w-full btn-primary-dark py-3 rounded-md"> Send Message </button>
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className={`w-full btn-primary-dark py-3 rounded-md ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        >
+                            {isSubmitting ? 'Sending...' : 'Send Message'}
+                        </button>
                     </form>
                 </div>
                 <div className="max-w-2xl mx-auto mt-12 text-center">

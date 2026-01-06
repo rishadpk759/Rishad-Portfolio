@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import type { Project, BlogPost } from './types';
 import { NavLink, useLocation } from 'react-router-dom';
 
@@ -66,6 +66,110 @@ export const AnimatedText: React.FC<{ text: string, className?: string, progress
 
 
 // --- UI Components ---
+
+// Top-right navbar: desktop shows links, mobile shows minimal burger menu
+export const MainNavbar: React.FC = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation();
+
+    const links = [
+        { name: 'Home', path: '/' },
+        { name: 'About', path: '/about' },
+        { name: 'Work', path: '/portfolio' },
+        { name: 'Service', path: '/services' },
+        { name: 'Blog', path: '/blog' },
+        { name: 'Contact', path: '/contact' },
+    ];
+
+    // Close mobile menu when route changes
+    useEffect(() => {
+        setIsOpen(false);
+    }, [location.pathname]);
+
+    return (
+        <>
+            <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-4 flex items-center justify-end">
+                {/* Desktop navbar: single glass background behind all links */}
+                <div className="hidden md:flex items-center bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-6 py-2 nav-contrast" style={{ gap: '2.5rem' }}>
+                    {links.map(link => (
+                        <NavLink
+                            key={link.name}
+                            to={link.path}
+                            className={({ isActive }) =>
+                                [
+                                    'text-xs tracking-widest uppercase font-sans transition-colors duration-200 whitespace-nowrap',
+                                    isActive ? 'nav-link-active' : 'opacity-80 hover:opacity-100',
+                                ].join(' ')
+                            }
+                        >
+                            {link.name}
+                        </NavLink>
+                    ))}
+                </div>
+
+                {/* Mobile burger button - only visible on mobile screens */}
+                <button
+                    type="button"
+                    aria-label="Toggle navigation menu"
+                    aria-expanded={isOpen}
+                    onClick={() => setIsOpen(prev => !prev)}
+                    className="md:hidden inline-flex flex-col items-center justify-center w-8 h-8 gap-1.5"
+                >
+                    <span
+                        className={`block w-6 h-px bg-white transition-all duration-300 origin-center ${
+                            isOpen ? 'rotate-45 translate-y-2' : ''
+                        }`}
+                    />
+                    <span
+                        className={`block w-6 h-px bg-white transition-opacity duration-200 ${
+                            isOpen ? 'opacity-0' : 'opacity-100'
+                        }`}
+                    />
+                    <span
+                        className={`block w-6 h-px bg-white transition-all duration-300 origin-center ${
+                            isOpen ? '-rotate-45 -translate-y-2' : ''
+                        }`}
+                    />
+                </button>
+            </header>
+
+            {/* Mobile slide-out menu */}
+            <div
+                className={`fixed inset-0 z-30 bg-dark-bg/95 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+                    isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={() => setIsOpen(false)}
+            >
+                <nav
+                    className={`absolute top-0 right-0 h-full w-64 bg-dark-bg border-l border-dark-border transform transition-transform duration-300 ease-out ${
+                        isOpen ? 'translate-x-0' : 'translate-x-full'
+                    }`}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <ul className="pt-20 px-6 space-y-1">
+                        {links.map(link => (
+                            <li key={link.name}>
+                                <NavLink
+                                    to={link.path}
+                                    className={({ isActive }) =>
+                                        [
+                                            'block px-4 py-3 text-sm font-sans font-light tracking-widest uppercase transition-all duration-200',
+                                            isActive
+                                                ? 'text-brand-cyan border-l-2 border-brand-cyan pl-3'
+                                                : 'text-gray-300 hover:text-white hover:pl-4',
+                                        ].join(' ')
+                                    }
+                                >
+                                    {link.name}
+                                </NavLink>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </div>
+        </>
+    );
+};
 
 export const BottomNavBar: React.FC = () => {
     const location = useLocation();
