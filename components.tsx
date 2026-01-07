@@ -113,20 +113,20 @@ export const MainNavbar: React.FC = () => {
                     aria-label="Toggle navigation menu"
                     aria-expanded={isOpen}
                     onClick={() => setIsOpen(prev => !prev)}
-                    className="md:hidden inline-flex flex-col items-center justify-center w-8 h-8 gap-1.5"
+                    className="md:hidden inline-flex flex-col items-center justify-center w-12 h-12 gap-2 bg-black/30 backdrop-blur-md border border-white/20 rounded-lg shadow-lg"
                 >
                     <span
-                        className={`block w-6 h-px bg-white transition-all duration-300 origin-center ${
+                        className={`block w-7 h-[2px] bg-white transition-all duration-300 origin-center ${
                             isOpen ? 'rotate-45 translate-y-2' : ''
                         }`}
                     />
                     <span
-                        className={`block w-6 h-px bg-white transition-opacity duration-200 ${
+                        className={`block w-7 h-[2px] bg-white transition-opacity duration-200 ${
                             isOpen ? 'opacity-0' : 'opacity-100'
                         }`}
                     />
                     <span
-                        className={`block w-6 h-px bg-white transition-all duration-300 origin-center ${
+                        className={`block w-7 h-[2px] bg-white transition-all duration-300 origin-center ${
                             isOpen ? '-rotate-45 -translate-y-2' : ''
                         }`}
                     />
