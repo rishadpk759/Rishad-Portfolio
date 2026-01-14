@@ -260,37 +260,78 @@ export const HomePage: React.FC = () => {
                     </section>
                 </div>
                 
-                <section id="services-section" ref={servicesContainerRef} className="relative z-30 bg-white text-black">
+                <section id="services-section" ref={servicesContainerRef} className="relative z-30 bg-dark-bg text-white">
                     <div className="services-container">
                         <div className="services-sticky-wrapper">
-                            <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
-                                    <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
-                                        {SERVICES.map((service, index) => (
-                                            <div key={index} data-index={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
-                                                <div className="max-w-md px-4 md:px-0">
-                                                    <div className="flex items-center gap-4 mb-4">
-                                                        <p className="service-phase-text">SERVICE 0{index + 1}</p>
-                                                        <div className="h-[1px] w-16 bg-gray-300"></div>
+                            <div className="relative h-full w-full">
+                                {/* Left side pattern strip */}
+                                <div className="absolute left-0 top-0 bottom-0 w-20 bg-gray-900/30 service-pattern-strip hidden md:block"></div>
+                                
+                                {/* Main content grid */}
+                                <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center pl-0 md:pl-24">
+                                    {/* Left side - Title */}
+                                    <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                        <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
+                                            {SERVICES.map((service, index) => (
+                                                <div key={index} data-index={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center relative`}>
+                                                    {/* Background number */}
+                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 service-bg-number">0{index + 1}</div>
+                                                    
+                                                    <div className="relative z-10 max-w-lg px-4 md:px-0">
+                                                        <div className="flex items-center gap-4 mb-6">
+                                                            <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                            <div className="h-[1px] w-20 bg-gray-400"></div>
+                                                        </div>
+                                                        <h3 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold italic mb-0 text-white leading-tight service-main-title">
+                                                            {service.title.toUpperCase()}
+                                                        </h3>
                                                     </div>
-                                                    <h3 className="font-sans text-2xl md:text-4xl font-bold mb-4 text-black">{service.title}</h3>
-                                                    <p className="text-gray-600 mb-6 text-sm md:text-base">{service.description}</p>
-                                                    <ul className="service-points-list">
-                                                        {service.points.map((point, pointIndex) => (
-                                                            <li key={pointIndex} className="service-point-item text-sm md:text-base"> {point} </li>
-                                                        ))}
-                                                    </ul>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Right side - Description and Points */}
+                                    <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                        <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
+                                            {SERVICES.map((service, index) => (
+                                                <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
+                                                    <div className="max-w-lg px-4 md:px-0">
+                                                        <p className="text-gray-300 mb-8 text-base md:text-lg leading-relaxed service-description">
+                                                            {service.description}
+                                                        </p>
+                                                        <div className="h-[1px] w-full bg-gray-400 mb-8"></div>
+                                                        <ul className="service-points-list">
+                                                            {service.points.map((point, pointIndex) => (
+                                                                <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 uppercase tracking-wider font-medium">
+                                                                    {point.toUpperCase()}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="h-full flex items-center justify-center relative hidden md:flex">
-                                    <div className="service-image-container">
-                                        {SERVICES.map((service, index) => (
-                                            <img key={index} src={service.imageUrl} alt={service.title} className={`service-image ${activeServiceIndex === index ? 'active' : ''}`} />
-                                        ))}
-                                    </div>
+                                
+                                {/* Vertical Navigation Indicator - Right Edge */}
+                                <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-4 service-nav-indicator">
+                                    {SERVICES.map((_, index) => (
+                                        <div key={index} className="relative flex flex-col items-center">
+                                            <div className={`service-nav-number ${activeServiceIndex === index ? 'active' : ''}`}>
+                                                0{index + 1}
+                                            </div>
+                                            {index < SERVICES.length - 1 && (
+                                                <div className={`service-nav-line ${activeServiceIndex === index ? 'active' : ''}`}></div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {/* Scroll Indicator - Bottom Center */}
+                                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 service-scroll-indicator hidden md:block">
+                                    SCROLL
                                 </div>
                             </div>
                         </div>
@@ -716,43 +757,79 @@ export const ServicesPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-white text-black">
-            <div className="container mx-auto px-6 pt-20">
-                <h1 className="font-sans text-3xl md:text-5xl font-bold mb-6">Services</h1>
-                <p className="text-gray-600">From branding to UI/UX and marketing creatives, here’s what I do.</p>
-            </div>
-
-            <section className="relative z-10 py-12">
+        <div className="bg-dark-bg text-white">
+            <section className="relative z-10">
                 <div className="services-container" ref={containerRef}>
                     <div className="services-sticky-wrapper">
-                        <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                            <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
-                                <div className="w-full" style={!isMobile ? { transform: `translateY(-${translateY}px)` } : undefined}>
-                                    {SERVICES.map((service, index) => (
-                                        <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
-                                            <div className="max-w-md px-4 md:px-0">
-                                                <div className="flex items-center gap-4 mb-4">
-                                                    <p className="service-phase-text">SERVICE 0{index + 1}</p>
-                                                    <div className="h-[1px] w-16 bg-gray-300"></div>
+                        <div className="relative h-full w-full">
+                            {/* Left side pattern strip */}
+                            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gray-900/30 service-pattern-strip hidden md:block"></div>
+                            
+                            {/* Main content grid */}
+                            <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center pl-0 md:pl-24">
+                                {/* Left side - Title */}
+                                <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                    <div className="w-full" style={!isMobile ? { transform: `translateY(-${translateY}px)` } : undefined}>
+                                        {SERVICES.map((service, index) => (
+                                            <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center relative`}>
+                                                {/* Background number */}
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 service-bg-number">0{index + 1}</div>
+                                                
+                                                <div className="relative z-10 max-w-lg px-4 md:px-0">
+                                                    <div className="flex items-center gap-4 mb-6">
+                                                        <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                        <div className="h-[1px] w-20 bg-gray-400"></div>
+                                                    </div>
+                                                    <h3 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold italic mb-0 text-white leading-tight service-main-title">
+                                                        {service.title.toUpperCase()}
+                                                    </h3>
                                                 </div>
-                                                <h3 className="font-sans text-2xl md:text-4xl font-bold mb-4 text-black">{service.title}</h3>
-                                                <p className="text-gray-600 mb-6 text-sm md:text-base">{service.description}</p>
-                                                <ul className="service-points-list">
-                                                    {service.points.map((point, i) => (
-                                                        <li key={i} className="service-point-item text-sm md:text-base"> {point} </li>
-                                                    ))}
-                                                </ul>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                </div>
+                                
+                                {/* Right side - Description and Points */}
+                                <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
+                                    <div className="w-full" style={!isMobile ? { transform: `translateY(-${translateY}px)` } : undefined}>
+                                        {SERVICES.map((service, index) => (
+                                            <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
+                                                <div className="max-w-lg px-4 md:px-0">
+                                                    <p className="text-gray-300 mb-8 text-base md:text-lg leading-relaxed service-description">
+                                                        {service.description}
+                                                    </p>
+                                                    <div className="h-[1px] w-full bg-gray-400 mb-8"></div>
+                                                    <ul className="service-points-list">
+                                                        {service.points.map((point, pointIndex) => (
+                                                            <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 uppercase tracking-wider font-medium">
+                                                                {point.toUpperCase()}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="h-full flex items-center justify-center relative hidden md:flex">
-                                <div className="service-image-container">
-                                    {SERVICES.map((service, index) => (
-                                        <img key={index} src={service.imageUrl} alt={service.title} className={`service-image ${activeIndex === index ? 'active' : ''}`} />
-                                    ))}
-                                </div>
+                            
+                            {/* Vertical Navigation Indicator - Right Edge */}
+                            <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:flex flex-col items-center gap-4 service-nav-indicator">
+                                {SERVICES.map((_, index) => (
+                                    <div key={index} className="relative flex flex-col items-center">
+                                        <div className={`service-nav-number ${activeIndex === index ? 'active' : ''}`}>
+                                            0{index + 1}
+                                        </div>
+                                        {index < SERVICES.length - 1 && (
+                                            <div className={`service-nav-line ${activeIndex === index ? 'active' : ''}`}></div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            {/* Scroll Indicator - Bottom Center */}
+                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 service-scroll-indicator hidden md:block">
+                                SCROLL
                             </div>
                         </div>
                     </div>

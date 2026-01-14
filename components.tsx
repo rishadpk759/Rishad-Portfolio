@@ -135,10 +135,11 @@ export const MainNavbar: React.FC = () => {
 
             {/* Mobile slide-out menu */}
             <div
-                className={`fixed inset-0 z-30 bg-dark-bg/95 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
-                    isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                className={`fixed inset-0 bg-dark-bg/95 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+                    isOpen ? 'opacity-100 pointer-events-auto z-30' : 'opacity-0 pointer-events-none -z-10'
                 }`}
                 onClick={() => setIsOpen(false)}
+                aria-hidden={!isOpen}
             >
                 <nav
                     className={`absolute top-0 right-0 h-full w-64 bg-dark-bg border-l border-dark-border transform transition-transform duration-300 ease-out ${
@@ -245,13 +246,13 @@ export const BottomNavBar: React.FC = () => {
 
 
 export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
-    <NavLink to={`/portfolio/${project.id}`} className="group block bg-dark-card border border-dark-border rounded-lg overflow-hidden transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-2">
+    <NavLink to={`/portfolio/${project.id}`} className="group block bg-dark-card border border-dark-border rounded-lg overflow-hidden transition-all duration-500 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-2">
         <div className="relative overflow-hidden h-48">
-            <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-all duration-300 flex items-end p-4">
-                 <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="font-sans text-xl text-white font-bold">{project.title}</h3>
-                    <p className="text-sm text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">{project.client}</p>
+            <img src={project.thumbnail} alt={project.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:from-black/90 transition-all duration-500 flex items-end p-4">
+                 <div className="transform translate-y-8 group-hover:translate-y-0 transition-transform duration-500">
+                    <h3 className="font-display text-xl text-white font-semibold">{project.title}</h3>
+                    <p className="text-sm text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">{project.client}</p>
                 </div>
             </div>
         </div>
@@ -259,18 +260,18 @@ export const ProjectCard: React.FC<{ project: Project }> = ({ project }) => (
 );
 
 export const BlogCard: React.FC<{ post: BlogPost }> = ({ post }) => (
-    <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg transition-all duration-300 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-1">
-        <div className="blog-thumb-2x1 rounded-t-lg">
-            <img src={post.imageUrl} alt={post.title} className="transition-transform duration-300 group-hover:scale-105" />
+    <NavLink to={`/blog/${post.id}`} className="group block bg-dark-card border border-dark-border rounded-lg transition-all duration-500 hover:border-brand-cyan hover:shadow-lg hover:shadow-brand-cyan/10 hover:-translate-y-2">
+        <div className="blog-thumb-2x1 rounded-t-lg overflow-hidden">
+            <img src={post.imageUrl} alt={post.title} className="transition-transform duration-700 group-hover:scale-110" />
         </div>
         <div className="p-6">
-            <h3 className="font-sans text-xl text-white font-bold group-hover:text-brand-cyan transition-colors duration-300">{post.title}</h3>
-            <div className="blog-meta mt-2">
-                <span>{post.date}</span>
+            <h3 className="font-display text-xl text-white font-semibold group-hover:text-brand-cyan transition-colors duration-400">{post.title}</h3>
+            <div className="blog-meta mt-3">
+                <span className="text-xs">{post.date}</span>
                 <div className="blog-meta-dot"></div>
-                <span>{post.views.toLocaleString()} Views</span>
+                <span className="text-xs">{post.views.toLocaleString()} Views</span>
             </div>
-            <p className="text-gray-400 mt-4">{post.excerpt}</p>
+            <p className="text-gray-300 mt-4 text-sm leading-relaxed">{post.excerpt}</p>
         </div>
     </NavLink>
 );
@@ -306,7 +307,7 @@ export const Reveal: React.FC<{ children: React.ReactNode; delayMs?: number; cla
     return (
         <div
             ref={ref}
-            className={`transform will-change-transform transition-opacity transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${className}`}
+            className={`transform will-change-transform transition-opacity transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${className}`}
             style={style}
         >
             {children}
