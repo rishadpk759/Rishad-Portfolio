@@ -5,6 +5,7 @@ import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-r
 import { MainNavbar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage, MarqueeGallery } from './components';
 import { SiLinkedin, SiInstagram, SiFacebook, SiBehance } from 'react-icons/si';
 import { HiOutlineViewList, HiOutlineViewGrid } from 'react-icons/hi';
+import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
 const ReactQuill = React.lazy(() => import('react-quill'));
@@ -761,6 +762,332 @@ export const BlogPage: React.FC = () => {
     );
 };
 
+// Like Button Component
+const LikeButton: React.FC<{ postId: string }> = ({ postId }) => {
+    const [likes, setLikes] = useState(0);
+    const [isLiked, setIsLiked] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadLikes = async () => {
+            try {
+                // Check if user has already liked (using localStorage)
+                const likeKey = `liked_post_${postId}`;
+                const hasLiked = localStorage.getItem(likeKey) === 'true';
+                setIsLiked(hasLiked);
+
+                // Get total likes count from Supabase
+                const { data, error } = await supabase
+                    .from('blog_post_likes')
+                    .select('id')
+                    .eq('post_id', postId);
+
+                if (!error && data) {
+                    setLikes(data.length);
+                } else {
+                    // Fallback: use localStorage count if table doesn't exist
+                    const storedLikes = localStorage.getItem(`likes_count_${postId}`);
+                    if (storedLikes) {
+                        setLikes(parseInt(storedLikes, 10));
+                    }
+                }
+            } catch (e) {
+                // Fallback to localStorage if Supabase fails
+                const likeKey = `liked_post_${postId}`;
+                const hasLiked = localStorage.getItem(likeKey) === 'true';
+                setIsLiked(hasLiked);
+                const storedLikes = localStorage.getItem(`likes_count_${postId}`);
+                if (storedLikes) {
+                    setLikes(parseInt(storedLikes, 10));
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadLikes();
+    }, [postId]);
+
+    const handleLike = async () => {
+        const likeKey = `liked_post_${postId}`;
+        const hasLiked = localStorage.getItem(likeKey) === 'true';
+        
+        if (hasLiked) {
+            // Unlike
+            try {
+                // Get user identifier
+                let userId = localStorage.getItem(`user_id_${postId}`);
+                if (userId) {
+                    const { error } = await supabase
+                        .from('blog_post_likes')
+                        .delete()
+                        .eq('post_id', postId)
+                        .eq('user_id', userId);
+
+                    if (!error) {
+                        localStorage.removeItem(likeKey);
+                        localStorage.removeItem(`user_id_${postId}`);
+                        setIsLiked(false);
+                        setLikes(prev => {
+                            const newCount = Math.max(0, prev - 1);
+                            localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                            return newCount;
+                        });
+                    }
+                } else {
+                    // Fallback: just update localStorage
+                    localStorage.removeItem(likeKey);
+                    setIsLiked(false);
+                    setLikes(prev => {
+                        const newCount = Math.max(0, prev - 1);
+                        localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                        return newCount;
+                    });
+                }
+            } catch (e) {
+                // Fallback to localStorage
+                localStorage.removeItem(likeKey);
+                setIsLiked(false);
+                setLikes(prev => {
+                    const newCount = Math.max(0, prev - 1);
+                    localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                    return newCount;
+                });
+            }
+        } else {
+            // Like
+            try {
+                const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                localStorage.setItem(`user_id_${postId}`, userId);
+
+                const { error } = await supabase
+                    .from('blog_post_likes')
+                    .insert([{ post_id: postId, user_id: userId }]);
+
+                if (!error) {
+                    localStorage.setItem(likeKey, 'true');
+                    setIsLiked(true);
+                    setLikes(prev => {
+                        const newCount = prev + 1;
+                        localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                        return newCount;
+                    });
+                } else {
+                    // Fallback to localStorage if insert fails
+                    localStorage.setItem(likeKey, 'true');
+                    setIsLiked(true);
+                    setLikes(prev => {
+                        const newCount = prev + 1;
+                        localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                        return newCount;
+                    });
+                }
+            } catch (e) {
+                // Fallback to localStorage
+                localStorage.setItem(likeKey, 'true');
+                setIsLiked(true);
+                setLikes(prev => {
+                    const newCount = prev + 1;
+                    localStorage.setItem(`likes_count_${postId}`, newCount.toString());
+                    return newCount;
+                });
+            }
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center gap-2 text-gray-400">
+                <AiOutlineHeart size={20} />
+                <span>...</span>
+            </div>
+        );
+    }
+
+    return (
+        <button
+            onClick={handleLike}
+            className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-600 hover:border-brand-cyan transition-colors duration-300 bg-dark-card hover:bg-dark-card/80"
+            aria-label={isLiked ? 'Unlike this post' : 'Like this post'}
+        >
+            {isLiked ? (
+                <AiFillHeart size={20} className="text-red-500" />
+            ) : (
+                <AiOutlineHeart size={20} className="text-gray-400" />
+            )}
+            <span className="text-sm font-sans text-gray-300">{likes.toLocaleString()}</span>
+        </button>
+    );
+};
+
+// Comment Section Component
+const CommentSection: React.FC<{ postId: string }> = ({ postId }) => {
+    const [comments, setComments] = useState<Array<{ id: string; name: string; comment: string; date: string }>>([]);
+    const [name, setName] = useState('');
+    const [comment, setComment] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadComments = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('blog_post_comments')
+                    .select('*')
+                    .eq('post_id', postId)
+                    .order('created_at', { ascending: false });
+
+                if (!error && data) {
+                    setComments(data.map(c => ({
+                        id: c.id,
+                        name: c.name || 'Anonymous',
+                        comment: c.comment,
+                        date: new Date(c.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                    })));
+                } else if (error) {
+                    // If table doesn't exist, load from localStorage
+                    const storedComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]');
+                    setComments(storedComments);
+                }
+            } catch (e) {
+                // Fallback to localStorage
+                const storedComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]');
+                setComments(storedComments);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadComments();
+    }, [postId]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim() || !comment.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            const { data, error } = await supabase
+                .from('blog_post_comments')
+                .insert([{ post_id: postId, name: name.trim(), comment: comment.trim() }])
+                .select()
+                .single();
+
+            if (error) {
+                // Check if table doesn't exist
+                if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+                    // Fallback to localStorage
+                    const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    const newComment = {
+                        id: commentId,
+                        name: name.trim(),
+                        comment: comment.trim(),
+                        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                    };
+                    
+                    // Store in localStorage
+                    const storedComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]');
+                    storedComments.push(newComment);
+                    localStorage.setItem(`comments_${postId}`, JSON.stringify(storedComments));
+                    
+                    setComments(prev => [newComment, ...prev]);
+                    setName('');
+                    setComment('');
+                    alert('Comment posted! (Note: Supabase table not found. Comment saved locally. Please create the blog_post_comments table in Supabase for persistent storage.)');
+                } else {
+                    console.error('Supabase error:', error);
+                    alert(`Failed to submit comment: ${error.message || 'Unknown error'}. Please check the browser console for details.`);
+                }
+            } else if (data) {
+                setComments(prev => [{
+                    id: data.id,
+                    name: data.name || 'Anonymous',
+                    comment: data.comment,
+                    date: new Date(data.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                }, ...prev]);
+                setName('');
+                setComment('');
+            }
+        } catch (e: any) {
+            console.error('Failed to submit comment:', e);
+            // Fallback to localStorage on any error
+            const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const newComment = {
+                id: commentId,
+                name: name.trim(),
+                comment: comment.trim(),
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            };
+            
+            const storedComments = JSON.parse(localStorage.getItem(`comments_${postId}`) || '[]');
+            storedComments.push(newComment);
+            localStorage.setItem(`comments_${postId}`, JSON.stringify(storedComments));
+            
+            setComments(prev => [newComment, ...prev]);
+            setName('');
+            setComment('');
+            alert('Comment posted! (Saved locally. Please create the blog_post_comments table in Supabase for persistent storage.)');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="mt-12 pt-8 border-t border-gray-700">
+            <h3 className="font-sans text-2xl font-light text-white mb-6">Comments ({comments.length})</h3>
+            
+            {/* Comment Form */}
+            <form onSubmit={handleSubmit} className="mb-8 space-y-4">
+                <input
+                    type="text"
+                    placeholder="Your Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 text-white placeholder-gray-500 transition-colors duration-300"
+                    required
+                />
+                <textarea
+                    placeholder="Write a comment..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={4}
+                    className="w-full bg-dark-card border border-dark-border focus:border-brand-cyan focus:ring-0 rounded-md px-4 py-2 text-white placeholder-gray-500 transition-colors duration-300 resize-none"
+                    required
+                />
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-6 py-2 bg-brand-cyan/10 border border-brand-cyan text-brand-cyan font-sans text-sm rounded-md hover:bg-brand-cyan hover:text-dark-bg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isSubmitting ? 'Posting...' : 'Post Comment'}
+                </button>
+            </form>
+
+            {/* Comments List */}
+            {isLoading ? (
+                <div className="text-gray-400 text-sm">Loading comments...</div>
+            ) : comments.length === 0 ? (
+                <div className="text-gray-400 text-sm">No comments yet. Be the first to comment!</div>
+            ) : (
+                <div className="space-y-6">
+                    {comments.map((c) => (
+                        <div key={c.id} className="bg-dark-card border border-dark-border rounded-md p-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-sans text-sm font-semibold">
+                                    {c.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div className="font-sans text-sm font-medium text-white">{c.name}</div>
+                                    <div className="font-sans text-xs text-gray-400">{c.date}</div>
+                                </div>
+                            </div>
+                            <p className="font-sans text-sm text-gray-300 leading-relaxed ml-11">{c.comment}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const BlogPostPage: React.FC = () => {
     const { id } = useParams();
     const { blogPosts } = useData();
@@ -806,6 +1133,14 @@ export const BlogPostPage: React.FC = () => {
                     </div>
                     <img src={post.imageUrl} alt={post.title} className="w-full h-auto object-cover rounded-lg my-8 shadow-lg" />
                     <div className="prose prose-invert prose-lg text-gray-300 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
+                    
+                    {/* Like Button */}
+                    <div className="mt-8">
+                        <LikeButton postId={post.id} />
+                    </div>
+                    
+                    {/* Comment Section */}
+                    <CommentSection postId={post.id} />
                 </div>
             </div>
             <div className="h-32" />
@@ -1267,6 +1602,201 @@ export const AdminPortfolioManager: React.FC = () => {
     );
 };
 
+// Quick stats component for table display
+const PostEngagementStats: React.FC<{ postId: string }> = ({ postId }) => {
+    const [stats, setStats] = useState({ likes: 0, comments: 0 });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadStats = async () => {
+            try {
+                const [likesRes, commentsRes] = await Promise.all([
+                    supabase.from('blog_post_likes').select('id').eq('post_id', postId),
+                    supabase.from('blog_post_comments').select('id').eq('post_id', postId)
+                ]);
+
+                setStats({
+                    likes: likesRes.data?.length || 0,
+                    comments: commentsRes.data?.length || 0
+                });
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadStats();
+    }, [postId]);
+
+    if (isLoading) {
+        return <span className="text-gray-400 text-sm">Loading...</span>;
+    }
+
+    return (
+        <div className="flex items-center gap-3 text-sm">
+            <span className="text-gray-300">
+                <AiFillHeart size={14} className="inline text-red-500 mr-1" />
+                {stats.likes}
+            </span>
+            <span className="text-gray-300">
+                💬 {stats.comments}
+            </span>
+        </div>
+    );
+};
+
+// Admin component to view and manage comments and likes
+const AdminPostEngagement: React.FC<{ postId: string; postTitle: string }> = ({ postId, postTitle }) => {
+    const [comments, setComments] = useState<Array<{ id: string; name: string; comment: string; date: string; created_at: string }>>([]);
+    const [likes, setLikes] = useState(0);
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const loadEngagement = async () => {
+        setIsLoading(true);
+        try {
+            // Load comments
+            const { data: commentsData, error: commentsError } = await supabase
+                .from('blog_post_comments')
+                .select('*')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: false });
+
+            if (!commentsError && commentsData) {
+                setComments(commentsData.map(c => ({
+                    id: c.id,
+                    name: c.name || 'Anonymous',
+                    comment: c.comment,
+                    date: new Date(c.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                    created_at: c.created_at
+                })));
+            }
+
+            // Load likes count
+            const { data: likesData, error: likesError } = await supabase
+                .from('blog_post_likes')
+                .select('id')
+                .eq('post_id', postId);
+
+            if (!likesError && likesData) {
+                setLikes(likesData.length);
+            }
+        } catch (e) {
+            console.error('Failed to load engagement:', e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('blog_post_comments')
+                .delete()
+                .eq('id', commentId);
+
+            if (!error) {
+                setComments(prev => prev.filter(c => c.id !== commentId));
+            } else {
+                alert('Failed to delete comment. Please try again.');
+            }
+        } catch (e) {
+            console.error('Failed to delete comment:', e);
+            alert('Failed to delete comment. Please try again.');
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            loadEngagement();
+        }
+    }, [isOpen, postId]);
+
+    return (
+        <>
+            <AdminButton 
+                variant="secondary" 
+                size="sm" 
+                onClick={() => setIsOpen(true)}
+            >
+                View Engagement
+            </AdminButton>
+
+            {isOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setIsOpen(false)}>
+                    <div className="bg-dark-card border border-dark-border rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6 border-b border-dark-border flex justify-between items-center">
+                            <div>
+                                <h3 className="font-sans text-xl font-semibold text-white">Engagement for: {postTitle}</h3>
+                                <p className="text-sm text-gray-400 mt-1">{likes} Likes • {comments.length} Comments</p>
+                            </div>
+                            <button
+                                onClick={() => setIsOpen(false)}
+                                className="text-gray-400 hover:text-white text-2xl font-bold"
+                                aria-label="Close"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                            {/* Likes Section */}
+                            <div>
+                                <h4 className="font-sans text-lg font-semibold text-white mb-4">Likes: {likes}</h4>
+                                {likes === 0 ? (
+                                    <p className="text-gray-400 text-sm">No likes yet.</p>
+                                ) : (
+                                    <div className="bg-dark-bg border border-dark-border rounded-md p-4">
+                                        <p className="text-gray-300 text-sm">This post has {likes} {likes === 1 ? 'like' : 'likes'}.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Comments Section */}
+                            <div>
+                                <h4 className="font-sans text-lg font-semibold text-white mb-4">Comments: {comments.length}</h4>
+                                {isLoading ? (
+                                    <p className="text-gray-400 text-sm">Loading comments...</p>
+                                ) : comments.length === 0 ? (
+                                    <p className="text-gray-400 text-sm">No comments yet.</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {comments.map((comment) => (
+                                            <div key={comment.id} className="bg-dark-bg border border-dark-border rounded-md p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-brand-cyan/20 flex items-center justify-center text-brand-cyan font-sans text-sm font-semibold">
+                                                            {comment.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-sans text-sm font-medium text-white">{comment.name}</div>
+                                                            <div className="font-sans text-xs text-gray-400">{comment.date}</div>
+                                                        </div>
+                                                    </div>
+                                                    <AdminButton
+                                                        variant="danger"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                    >
+                                                        Delete
+                                                    </AdminButton>
+                                                </div>
+                                                <p className="font-sans text-sm text-gray-300 leading-relaxed ml-11">{comment.comment}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
 export const AdminBlogManager: React.FC = () => {
      const { blogPosts, deleteBlogPost } = useData();
     return (
@@ -1277,7 +1807,7 @@ export const AdminBlogManager: React.FC = () => {
             </div>
             <div className="admin-card overflow-hidden">
                 <table className="admin-table">
-                    <thead><tr><th>Title</th><th>Date</th><th>Views</th><th className="text-right">Actions</th></tr></thead>
+                    <thead><tr><th>Title</th><th>Date</th><th>Views</th><th>Engagement</th><th className="text-right">Actions</th></tr></thead>
                     <tbody>
                         {blogPosts.map(p => (
                             <tr key={p.id}>
@@ -1285,8 +1815,12 @@ export const AdminBlogManager: React.FC = () => {
                                 <td><p className="admin-table-meta">{p.date}</p></td>
                                 <td><p className="admin-table-meta">{p.views.toLocaleString()}</p></td>
                                 <td>
+                                    <PostEngagementStats postId={p.id} />
+                                </td>
+                                <td>
                                      <div className="flex justify-end space-x-2">
                                         <Link to={`/admin/blog/edit/${p.id}`}> <AdminButton variant="secondary" size="sm">Edit</AdminButton> </Link>
+                                        <AdminPostEngagement postId={p.id} postTitle={p.title} />
                                         <AdminButton variant="danger" size="sm" onClick={() => deleteBlogPost(p.id)}>Delete</AdminButton>
                                     </div>
                                 </td>
