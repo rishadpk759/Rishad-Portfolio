@@ -107,59 +107,63 @@ export const MainNavbar: React.FC = () => {
                     ))}
                 </div>
 
-                {/* Mobile burger button - only visible on mobile screens */}
+                {/* Mobile menu button - minimal design */}
                 <button
                     type="button"
                     aria-label="Toggle navigation menu"
                     aria-expanded={isOpen}
                     onClick={() => setIsOpen(prev => !prev)}
-                    className="md:hidden inline-flex flex-col items-center justify-center w-12 h-12 gap-2 bg-black/30 backdrop-blur-md border border-white/20 rounded-lg shadow-lg"
+                    className="md:hidden relative w-10 h-10 flex items-center justify-center z-50 rounded"
+                    style={{ 
+                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)'
+                    }}
                 >
-                    <span
-                        className={`block w-7 h-[2px] bg-white transition-all duration-300 origin-center ${
-                            isOpen ? 'rotate-45 translate-y-2' : ''
-                        }`}
-                    />
-                    <span
-                        className={`block w-7 h-[2px] bg-white transition-opacity duration-200 ${
-                            isOpen ? 'opacity-0' : 'opacity-100'
-                        }`}
-                    />
-                    <span
-                        className={`block w-7 h-[2px] bg-white transition-all duration-300 origin-center ${
-                            isOpen ? '-rotate-45 -translate-y-2' : ''
-                        }`}
-                    />
+                    <div className="relative w-5 h-3.5 flex flex-col justify-between">
+                        <span
+                            className={`block w-full h-[2px] bg-white transition-all duration-300 ${
+                                isOpen ? 'rotate-45 translate-y-[7px]' : ''
+                            }`}
+                        />
+                        <span
+                            className={`block w-full h-[2px] bg-white transition-all duration-300 ${
+                                isOpen ? '-rotate-45 -translate-y-[7px]' : ''
+                            }`}
+                        />
+                    </div>
                 </button>
             </header>
 
-            {/* Mobile slide-out menu */}
+            {/* Mobile menu - minimal black and white */}
             <div
-                className={`fixed inset-0 bg-dark-bg/95 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+                className={`fixed inset-0 bg-black transition-opacity duration-300 md:hidden ${
                     isOpen ? 'opacity-100 pointer-events-auto z-30' : 'opacity-0 pointer-events-none -z-10'
                 }`}
                 onClick={() => setIsOpen(false)}
                 aria-hidden={!isOpen}
             >
                 <nav
-                    className={`absolute top-0 right-0 h-full w-64 bg-dark-bg border-l border-dark-border transform transition-transform duration-300 ease-out ${
-                        isOpen ? 'translate-x-0' : 'translate-x-full'
+                    className={`absolute inset-0 flex flex-col items-center justify-center transform transition-transform duration-300 ease-out ${
+                        isOpen ? 'translate-y-0' : 'translate-y-[-20px] opacity-0'
                     }`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <ul className="pt-20 px-6 space-y-1">
-                        {links.map(link => (
+                    <ul className="space-y-8 text-center">
+                        {links.map((link, index) => (
                             <li key={link.name}>
                                 <NavLink
                                     to={link.path}
                                     className={({ isActive }) =>
                                         [
-                                            'block px-4 py-3 text-sm font-sans font-light tracking-widest uppercase transition-all duration-200',
+                                            'block text-2xl font-sans font-light tracking-widest uppercase transition-all duration-300',
                                             isActive
-                                                ? 'text-brand-cyan border-l-2 border-brand-cyan pl-3'
-                                                : 'text-gray-300 hover:text-white hover:pl-4',
+                                                ? 'text-white'
+                                                : 'text-white/60 hover:text-white',
                                         ].join(' ')
                                     }
+                                    style={{ 
+                                        transitionDelay: isOpen ? `${index * 50}ms` : '0ms' 
+                                    }}
                                 >
                                     {link.name}
                                 </NavLink>

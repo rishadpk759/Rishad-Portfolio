@@ -4,6 +4,7 @@ import { useData } from './context';
 import { Link, useParams, Outlet, useNavigate, Navigate, NavLink } from 'react-router-dom';
 import { MainNavbar, ProjectCard, BlogCard, ContactForm, AdminSidebar, PageTitle, AnimatedText, CreativeImageFrame, LazyImage, MarqueeGallery } from './components';
 import { SiLinkedin, SiInstagram, SiFacebook, SiBehance } from 'react-icons/si';
+import { HiOutlineViewList, HiOutlineViewGrid } from 'react-icons/hi';
 import { SERVICES, WORK_HISTORY, FACTS, PORTFOLIO_CATEGORIES } from './constants';
 import { Project, ProjectCategory, BlogPost, SiteSettings } from './types';
 const ReactQuill = React.lazy(() => import('react-quill'));
@@ -384,44 +385,73 @@ export const HomePage: React.FC = () => {
 
 export const PortfolioPage: React.FC = () => {
     const { projects } = useData();
-    const [selectedCategory, setSelectedCategory] = useState('All');
-    const [columnCount, setColumnCount] = useState(1);
-    
-    const filteredProjects = projects.filter(p => selectedCategory === 'All' || p.category === selectedCategory);
-    
-    useEffect(() => {
-        const computeColumns = () => {
-            const w = window.innerWidth;
-            if (w >= 1280) return 4;
-            if (w >= 1024) return 3;
-            if (w >= 640) return 2;
-            return 1;
-        };
-        const update = () => setColumnCount(computeColumns());
-        update();
-        window.addEventListener('resize', update);
-        return () => window.removeEventListener('resize', update);
-    }, []);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
     return (
-        <div className="animate-fadeIn">
-            <div className="container mx-auto px-6 pt-20">
-                <p className="tracking-widest uppercase text-sm mb-4 text-gray-500">(03) PORTFOLIO</p>
-                <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">Selected Works</h1>
-            </div>
-            <div className="container mx-auto px-6 pb-12">
-                <div className="grid grid-cols-1 gap-8">
-                    {filteredProjects.map(project => (
-                        <Link to={`/portfolio/${project.id}`} key={project.id} className="group block relative rounded-lg overflow-hidden">
-                            <img src={project.thumbnail} alt={project.title} className="w-full h-auto block" />
-                            <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-end p-4">
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <h3 className="font-sans text-lg md:text-xl text-white font-bold">{project.title}</h3>
-                                    <p className="text-xs md:text-sm text-gray-300">{project.client}</p>
-                                </div>
+        <div className="bg-dark-bg min-h-screen">
+            {/* Projects - List View (Default) */}
+            {viewMode === 'list' && (
+                <div className="portfolio-list-view">
+                    {projects.map((project, index) => (
+                        <Link 
+                            to={`/portfolio/${project.id}`} 
+                            key={project.id} 
+                            className="portfolio-list-item group block relative w-full"
+                            style={{ margin: 0, padding: 0 }}
+                        >
+                            <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden" style={{ margin: 0, padding: 0 }}>
+                                <img 
+                                    src={project.thumbnail} 
+                                    alt={project.title} 
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                                    style={{ display: 'block', margin: 0, padding: 0 }}
+                                />
                             </div>
                         </Link>
                     ))}
+                </div>
+            )}
+
+            {/* Projects - Grid View */}
+            {viewMode === 'grid' && (
+                <div className="container mx-auto px-6 pb-12">
+                    <div className="portfolio-grid-view grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-4">
+                        {projects.map(project => (
+                            <Link 
+                                to={`/portfolio/${project.id}`} 
+                                key={project.id} 
+                                className="portfolio-grid-item group block relative overflow-hidden"
+                            >
+                                <div className="relative w-full aspect-[4/3] overflow-hidden">
+                                    <img 
+                                        src={project.thumbnail} 
+                                        alt={project.title} 
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                    />
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* View Toggle - Small Icon Buttons Bottom Right */}
+            <div className="fixed bottom-6 right-6 z-60 portfolio-view-toggle">
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`portfolio-toggle-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        aria-label="List view"
+                    >
+                        <HiOutlineViewList size={16} />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`portfolio-toggle-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        aria-label="Grid view"
+                    >
+                        <HiOutlineViewGrid size={16} />
+                    </button>
                 </div>
             </div>
         </div>
@@ -435,21 +465,28 @@ export const ProjectDetailPage: React.FC = () => {
     if (!project) return <div className="container mx-auto px-6 py-12 pt-16">Project not found.</div>;
     return (
         <>
-            <div className="container mx-auto px-6 py-12 animate-fadeIn pt-16">
-                <div className="text-center mb-12">
-                    <h1 className="font-sans text-3xl md:text-5xl font-bold text-white">{project.title}</h1>
-                    <p className="text-lg md:text-xl text-gray-400 mt-2">{project.client}</p>
+            <div className="animate-fadeIn pt-16">
+                <div className="container mx-auto px-6 py-12">
+                    <div className="text-center mb-12">
+                        <h1 className="font-display text-3xl md:text-5xl font-bold text-white">{project.title}</h1>
+                        <p className="text-lg md:text-xl text-gray-400 mt-2">{project.client}</p>
+                    </div>
                 </div>
-                <div className="mb-12">
+                
+                {/* Images - Full Width, No Gaps */}
+                <div className="project-detail-images">
                     {[project.thumbnail, ...(project.images || [])]
                         .filter(Boolean)
                         .map((img, index) => (
                             <img key={index} src={img as string} alt={`${project.title} - view ${index + 1}`} className="project-detail-image" />
                         ))}
                 </div>
-                <div className="max-w-3xl mx-auto">
-                    <h2 className="font-sans text-3xl font-bold text-white mb-4">Project Description</h2>
-                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+                
+                <div className="container mx-auto px-6 py-12">
+                    <div className="max-w-3xl mx-auto">
+                        <h2 className="font-display text-3xl font-bold text-white mb-4">Project Description</h2>
+                        <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{project.description}</p>
+                    </div>
                 </div>
             </div>
             
