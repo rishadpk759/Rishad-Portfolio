@@ -44,6 +44,174 @@ export const AdminLayout: React.FC = () => {
     );
 };
 
+// Interactive Coffee Doodle Component
+const InteractiveCoffeeDoodle: React.FC = () => {
+    const doodleRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const positionRef = useRef({ x: 0, y: 0 });
+    const velocityRef = useRef({ x: 0, y: 0 });
+    const animationFrameRef = useRef<number | null>(null);
+    const mousePosRef = useRef({ x: 0, y: 0 });
+    const isMouseNearRef = useRef(false);
+
+    useEffect(() => {
+        const container = containerRef.current;
+        const doodle = doodleRef.current;
+        if (!container || !doodle) return;
+
+        const doodleSize = 72;
+        const boundaryPadding = 80;
+        let containerRect = container.getBoundingClientRect();
+        
+        // Initialize with a random slow velocity to keep it always moving
+        const initialSpeed = 0.15;
+        const initialAngle = Math.random() * Math.PI * 2;
+        velocityRef.current = {
+            x: Math.cos(initialAngle) * initialSpeed,
+            y: Math.sin(initialAngle) * initialSpeed
+        };
+        
+        const updatePosition = () => {
+            if (!container || !doodle) return;
+            
+            containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            let { x, y } = positionRef.current;
+            let { x: vx, y: vy } = velocityRef.current;
+            
+            // Calculate distance from mouse to doodle center
+            const doodleCenterX = containerRect.left + containerRect.width / 2 + x;
+            const doodleCenterY = containerRect.top + containerRect.height / 2 + y;
+            const dx = mousePosRef.current.x - doodleCenterX;
+            const dy = mousePosRef.current.y - doodleCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const repulsionRadius = 150;
+            
+            // Mouse repulsion - change direction to move away from mouse (all directions)
+            if (distance < repulsionRadius && distance > 0) {
+                const force = (repulsionRadius - distance) / repulsionRadius;
+                const mouseAngle = Math.atan2(dy, dx);
+                // Calculate opposite direction (180 degrees from mouse)
+                const escapeAngle = mouseAngle + Math.PI;
+                // Change velocity direction to escape from mouse
+                const escapeSpeed = 0.3 * force;
+                vx = Math.cos(escapeAngle) * escapeSpeed;
+                vy = Math.sin(escapeAngle) * escapeSpeed;
+            } else {
+                // Maintain minimum speed to keep it always moving
+                const currentSpeed = Math.sqrt(vx * vx + vy * vy);
+                const minSpeed = 0.12;
+                if (currentSpeed < minSpeed) {
+                    // If too slow, add a small random velocity to keep it moving
+                    const randomAngle = Math.random() * Math.PI * 2;
+                    vx += Math.cos(randomAngle) * 0.05;
+                    vy += Math.sin(randomAngle) * 0.05;
+                }
+                // Limit maximum speed for slow movement
+                const maxSpeed = 0.25;
+                if (currentSpeed > maxSpeed) {
+                    const scale = maxSpeed / currentSpeed;
+                    vx *= scale;
+                    vy *= scale;
+                }
+            }
+            
+            // Apply velocity
+            x += vx;
+            y += vy;
+            
+            // Boundary collision detection and bounce (change direction)
+            const maxX = (containerWidth - doodleSize) / 2 - boundaryPadding;
+            const maxY = (containerHeight - doodleSize) / 2 - boundaryPadding;
+            
+            if (x > maxX) {
+                x = maxX;
+                vx = -Math.abs(vx); // Bounce to left
+            } else if (x < -maxX) {
+                x = -maxX;
+                vx = Math.abs(vx); // Bounce to right
+            }
+            
+            if (y > maxY) {
+                y = maxY;
+                vy = -Math.abs(vy); // Bounce upward
+            } else if (y < -maxY) {
+                y = -maxY;
+                vy = Math.abs(vy); // Bounce downward
+            }
+            
+            // No friction - keep it moving infinitely
+            // Just ensure it maintains slow, continuous motion
+            
+            // Update position
+            positionRef.current = { x, y };
+            velocityRef.current = { x: vx, y: vy };
+            
+            doodle.style.transform = `translate(${x}px, ${y}px)`;
+            
+            animationFrameRef.current = requestAnimationFrame(updatePosition);
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            mousePosRef.current = { x: e.clientX, y: e.clientY };
+            isMouseNearRef.current = true;
+        };
+
+        const handleMouseLeave = () => {
+            isMouseNearRef.current = false;
+        };
+
+        container.addEventListener('mousemove', handleMouseMove);
+        container.addEventListener('mouseleave', handleMouseLeave);
+        
+        // Start animation
+        animationFrameRef.current = requestAnimationFrame(updatePosition);
+
+        return () => {
+            container.removeEventListener('mousemove', handleMouseMove);
+            container.removeEventListener('mouseleave', handleMouseLeave);
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, []);
+
+    return (
+        <div 
+            ref={containerRef}
+            className="coffee-doodle-container mb-16"
+            style={{ 
+                marginTop: '60px',
+                width: '100%',
+                height: '200px',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}
+        >
+            <div
+                ref={doodleRef}
+                className="coffee-doodle-interactive"
+                style={{
+                    position: 'absolute',
+                    transition: 'transform 0.1s linear',
+                    willChange: 'transform'
+                }}
+            >
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/60">
+                    <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                    <line x1="6" y1="1" x2="6" y2="4"></line>
+                    <line x1="10" y1="1" x2="10" y2="4"></line>
+                    <line x1="14" y1="1" x2="14" y2="4"></line>
+                </svg>
+            </div>
+        </div>
+    );
+};
 
 // PUBLIC PAGES
 export const HomePage: React.FC = () => {
@@ -270,42 +438,39 @@ export const HomePage: React.FC = () => {
                                 
                                 {/* Main content grid */}
                                 <div className="container mx-auto h-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center pl-0 md:pl-24">
-                                    {/* Left side - Title */}
-                                    <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
-                                        <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
+                                    {isMobile ? (
+                                        /* Mobile: Combined layout - each service grouped together */
+                                        <div className="w-full space-y-16 md:space-y-0">
                                             {SERVICES.map((service, index) => (
-                                                <div key={index} data-index={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center relative`}>
+                                                <div key={index} className="relative py-8">
                                                     {/* Background number */}
                                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 service-bg-number">0{index + 1}</div>
                                                     
-                                                    <div className="relative z-10 max-w-lg px-4 md:px-0">
+                                                    <div className="relative z-10 max-w-lg px-4">
+                                                        {/* Service Label */}
                                                         <div className="flex items-center gap-4 mb-6">
-                                                            <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                            <p className="service-phase-text">Service {index + 1}</p>
                                                             <div className="h-[1px] w-20 bg-gray-400"></div>
                                                         </div>
-                                                        <h3 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold italic mb-0 text-white leading-tight service-main-title">
-                                                            {service.title.toUpperCase()}
+                                                        
+                                                        {/* Title */}
+                                                        <h3 className="font-sans text-4xl md:text-5xl lg:text-6xl font-light mb-8 text-white leading-tight service-main-title">
+                                                            {service.title}
                                                         </h3>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Right side - Description and Points */}
-                                    <div className={`overflow-hidden ${isMobile ? '' : 'h-screen'} relative`}>
-                                        <div className="w-full" style={!isMobile ? { transform: `translateY(-${serviceTextTranslateY}px)` } : undefined}>
-                                            {SERVICES.map((service, index) => (
-                                                <div key={index} className={`service-text-item ${isMobile ? '' : 'h-screen'} flex items-center`}>
-                                                    <div className="max-w-lg px-4 md:px-0">
+                                                        
+                                                        {/* Description */}
                                                         <p className="text-gray-300 mb-8 text-base md:text-lg leading-relaxed service-description">
                                                             {service.description}
                                                         </p>
+                                                        
+                                                        {/* Divider */}
                                                         <div className="h-[1px] w-full bg-gray-400 mb-8"></div>
+                                                        
+                                                        {/* Points */}
                                                         <ul className="service-points-list">
                                                             {service.points.map((point, pointIndex) => (
-                                                                <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 uppercase tracking-wider font-medium">
-                                                                    {point.toUpperCase()}
+                                                                <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 font-light">
+                                                                    {point}
                                                                 </li>
                                                             ))}
                                                         </ul>
@@ -313,7 +478,54 @@ export const HomePage: React.FC = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            {/* Desktop: Left side - Title */}
+                                            <div className="overflow-hidden h-screen relative">
+                                                <div className="w-full" style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
+                                                    {SERVICES.map((service, index) => (
+                                                        <div key={index} data-index={index} className="service-text-item h-screen flex items-center relative">
+                                                            {/* Background number */}
+                                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 service-bg-number">0{index + 1}</div>
+                                                            
+                                                            <div className="relative z-10 max-w-lg px-4 md:px-0">
+                                                                <div className="flex items-center gap-4 mb-6">
+                                                                    <p className="service-phase-text">Service {index + 1}</p>
+                                                                    <div className="h-[1px] w-20 bg-gray-400"></div>
+                                                                </div>
+                                                                <h3 className="font-sans text-4xl md:text-5xl lg:text-6xl font-light mb-0 text-white leading-tight service-main-title">
+                                                                    {service.title}
+                                                                </h3>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Desktop: Right side - Description and Points */}
+                                            <div className="overflow-hidden h-screen relative">
+                                                <div className="w-full" style={{ transform: `translateY(-${serviceTextTranslateY}px)` }}>
+                                                    {SERVICES.map((service, index) => (
+                                                        <div key={index} className="service-text-item h-screen flex items-center">
+                                                            <div className="max-w-lg px-4 md:px-0">
+                                                                <p className="text-gray-300 mb-8 text-base md:text-lg leading-relaxed service-description">
+                                                                    {service.description}
+                                                                </p>
+                                                                <div className="h-[1px] w-full bg-gray-400 mb-8"></div>
+                                                                <ul className="service-points-list">
+                                                                    {service.points.map((point, pointIndex) => (
+                                                                        <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 font-light">
+                                                                            {point}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 
                                 {/* Vertical Navigation Indicator - Right Edge */}
@@ -372,10 +584,12 @@ export const HomePage: React.FC = () => {
                 {/* Solid spacer to prevent hero showing through */}
                 <div className="h-8 bg-white"></div>
 
-                <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-hidden">
+                <section id="contact-section" className="contact-cta-section relative bg-dark-bg z-40 overflow-visible">
                     <Link to="/contact" className="relative z-10 flex flex-col items-center justify-center w-full min-h-screen text-center text-white p-6">
-                        <h2 className="hero-text-bg whitespace-normal" dangerouslySetInnerHTML={{ __html: 'FUEL ME WITH <br /> COFFEE' }} />
-                        <p className="font-sans text-lg md:text-xl lg:text-3xl text-gray-400 mt-8 px-4"> And I'll fuel your brand with design. </p>
+                        {/* Interactive Floating Coffee Doodle */}
+                        <InteractiveCoffeeDoodle />
+                        <h2 className="font-sans text-2xl md:text-3xl font-light text-white/90 mb-4">Fuel me with coffee</h2>
+                        <p className="font-sans text-sm md:text-base text-gray-400 mt-4 px-4">And I'll fuel your brand with design.</p>
                     </Link>
                 </section>
             </div>
@@ -814,11 +1028,11 @@ export const ServicesPage: React.FC = () => {
                                                 
                                                 <div className="relative z-10 max-w-lg px-4 md:px-0">
                                                     <div className="flex items-center gap-4 mb-6">
-                                                        <p className="service-phase-text">SERVICE 0{index + 1}</p>
+                                                        <p className="service-phase-text">Service {index + 1}</p>
                                                         <div className="h-[1px] w-20 bg-gray-400"></div>
                                                     </div>
-                                                    <h3 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold italic mb-0 text-white leading-tight service-main-title">
-                                                        {service.title.toUpperCase()}
+                                                    <h3 className="font-sans text-4xl md:text-5xl lg:text-6xl font-light mb-0 text-white leading-tight service-main-title">
+                                                        {service.title}
                                                     </h3>
                                                 </div>
                                             </div>
@@ -838,8 +1052,8 @@ export const ServicesPage: React.FC = () => {
                                                     <div className="h-[1px] w-full bg-gray-400 mb-8"></div>
                                                     <ul className="service-points-list">
                                                         {service.points.map((point, pointIndex) => (
-                                                            <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 uppercase tracking-wider font-medium">
-                                                                {point.toUpperCase()}
+                                                            <li key={pointIndex} className="service-point-item text-base md:text-lg mb-4 text-gray-300 font-light">
+                                                                {point}
                                                             </li>
                                                         ))}
                                                     </ul>

@@ -89,54 +89,99 @@ export const MainNavbar: React.FC = () => {
     return (
         <>
             <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-8 py-4 flex items-center justify-end">
-                {/* Desktop navbar: single glass background behind all links */}
-                <div className="hidden md:flex items-center bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-6 py-2 nav-contrast" style={{ gap: '2.5rem' }}>
-                    {links.map(link => (
-                        <NavLink
-                            key={link.name}
-                            to={link.path}
-                            className={({ isActive }) =>
-                                [
-                                    'text-xs tracking-widest uppercase font-sans transition-colors duration-200 whitespace-nowrap',
-                                    isActive ? 'nav-link-active' : 'opacity-80 hover:opacity-100',
-                                ].join(' ')
-                            }
-                        >
-                            {link.name}
-                        </NavLink>
-                    ))}
-                </div>
-
-                {/* Mobile menu button - minimal design */}
+                {/* Menu button - minimal design matching theme */}
                 <button
                     type="button"
                     aria-label="Toggle navigation menu"
                     aria-expanded={isOpen}
                     onClick={() => setIsOpen(prev => !prev)}
-                    className="md:hidden relative w-10 h-10 flex items-center justify-center z-50 rounded"
+                    className="relative z-50"
                     style={{ 
-                        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)'
+                        width: '40px',
+                        height: '40px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '9999px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
                     }}
                 >
-                    <div className="relative w-5 h-3.5 flex flex-col justify-between">
-                        <span
-                            className={`block w-full h-[2px] bg-white transition-all duration-300 ${
-                                isOpen ? 'rotate-45 translate-y-[7px]' : ''
-                            }`}
-                        />
-                        <span
-                            className={`block w-full h-[2px] bg-white transition-all duration-300 ${
-                                isOpen ? '-rotate-45 -translate-y-[7px]' : ''
-                            }`}
-                        />
-                    </div>
+                    {!isOpen ? (
+                        <div style={{ 
+                            width: '18px', 
+                            height: '12px', 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            justifyContent: 'space-between',
+                            position: 'relative'
+                        }}>
+                            <span style={{ 
+                                display: 'block', 
+                                width: '100%', 
+                                height: '1.5px', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '1px',
+                                transition: 'all 0.3s ease'
+                            }} />
+                            <span style={{ 
+                                display: 'block', 
+                                width: '100%', 
+                                height: '1.5px', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '1px',
+                                transition: 'all 0.3s ease'
+                            }} />
+                            <span style={{ 
+                                display: 'block', 
+                                width: '100%', 
+                                height: '1.5px', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '1px',
+                                transition: 'all 0.3s ease'
+                            }} />
+                        </div>
+                    ) : (
+                        <div style={{ 
+                            width: '18px', 
+                            height: '18px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            position: 'relative'
+                        }}>
+                            <span style={{ 
+                                display: 'block', 
+                                width: '100%', 
+                                height: '1.5px', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '1px',
+                                position: 'absolute',
+                                transform: 'rotate(45deg)',
+                                transition: 'all 0.3s ease'
+                            }} />
+                            <span style={{ 
+                                display: 'block', 
+                                width: '100%', 
+                                height: '1.5px', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                borderRadius: '1px',
+                                position: 'absolute',
+                                transform: 'rotate(-45deg)',
+                                transition: 'all 0.3s ease'
+                            }} />
+                        </div>
+                    )}
                 </button>
             </header>
 
-            {/* Mobile menu - minimal black and white */}
+            {/* Menu overlay - minimal black and white */}
             <div
-                className={`fixed inset-0 bg-black transition-opacity duration-300 md:hidden ${
+                className={`fixed inset-0 bg-black transition-opacity duration-300 ${
                     isOpen ? 'opacity-100 pointer-events-auto z-30' : 'opacity-0 pointer-events-none -z-10'
                 }`}
                 onClick={() => setIsOpen(false)}
@@ -148,9 +193,9 @@ export const MainNavbar: React.FC = () => {
                     }`}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <ul className="space-y-8 text-center">
+                    <ul className="space-y-8 text-center" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                         {links.map((link, index) => (
-                            <li key={link.name}>
+                            <li key={link.name} style={{ listStyle: 'none' }}>
                                 <NavLink
                                     to={link.path}
                                     className={({ isActive }) =>
