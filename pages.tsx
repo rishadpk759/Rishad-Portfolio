@@ -598,16 +598,32 @@ export const HomePage: React.FC = () => {
     );
 };
 
+// ...existing code...
 export const PortfolioPage: React.FC = () => {
     const { projects } = useData();
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid'); // default to masonry grid
+    const [columns, setColumns] = useState<number>(3);
+
+    useEffect(() => {
+        const calcCols = () => {
+            const w = window.innerWidth;
+            if (w >= 1200) return 3;
+            if (w >= 900) return 3;
+            if (w >= 600) return 2;
+            return 1;
+        };
+        const update = () => setColumns(calcCols());
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
 
     return (
         <div className="bg-dark-bg min-h-screen">
-            {/* Projects - List View (Default) */}
+            {/* Projects - List View */}
             {viewMode === 'list' && (
                 <div className="portfolio-list-view">
-                    {projects.map((project, index) => (
+                    {projects.map(project => (
                         <Link 
                             to={`/portfolio/${project.id}`} 
                             key={project.id} 
@@ -626,22 +642,38 @@ export const PortfolioPage: React.FC = () => {
                     ))}
                 </div>
             )}
+        
 
-            {/* Projects - Grid View */}
-            {viewMode === 'grid' && (
+            {/* Projects - Masonry Grid View (default) */}
+           {viewMode === 'grid' && (
                 <div className="container mx-auto px-6 pb-12">
-                    <div className="portfolio-grid-view grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 md:gap-4">
+                    <div
+                        id="portfolio-masonry"
+                        className="portfolio-masonry"
+                        style={{
+                            columnCount: columns,
+                            columnGap: '1rem',
+                            width: '100%'
+                        }}
+                    >
                         {projects.map(project => (
-                            <Link 
-                                to={`/portfolio/${project.id}`} 
-                                key={project.id} 
-                                className="portfolio-grid-item group block relative overflow-hidden"
+                            <Link
+                                to={`/portfolio/${project.id}`}
+                                key={project.id}
+                                className="portfolio-masonry-item group block relative overflow-hidden"
+                                style={{
+                                    display: 'inline-block',
+                                    width: '100%',
+                                    marginBottom: '1rem',
+                                    breakInside: 'avoid' // keep only standard property to satisfy TS
+                                }}
                             >
-                                <div className="relative w-full aspect-[4/3] overflow-hidden">
-                                    <img 
-                                        src={project.thumbnail} 
-                                        alt={project.title} 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                <div style={{ width: '100%' }}>
+                                    <img
+                                        src={project.thumbnail}
+                                        alt={project.title}
+                                        style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }}
+                                        className="transition-transform duration-700 group-hover:scale-110"
                                     />
                                 </div>
                             </Link>
@@ -672,6 +704,7 @@ export const PortfolioPage: React.FC = () => {
         </div>
     );
 };
+// ...existing code...
 
 export const ProjectDetailPage: React.FC = () => {
     const { id } = useParams();
@@ -1276,9 +1309,10 @@ export const ContactPage: React.FC = () => {
                         <a href={settings.social.behance} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="Behance">
                             <SiBehance size={24} />
                         </a>
-                        <button onClick={() => handleSocialClick('instagram')} className="social-icon-dark" aria-label="Instagram">
-                             <SiInstagram size={24} />
-                        </button>
+                        <a href={settings.social.instagram} target="_blank" rel="noopener noreferrer" className="social-icon-dark" aria-label="Instagram">
+                            <SiInstagram size={24} />
+                        </a>
+                        
                         <button onClick={() => handleSocialClick('facebook')} className="social-icon-dark" aria-label="Facebook">
                             <SiFacebook size={24} />
                         </button>
