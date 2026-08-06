@@ -53,14 +53,14 @@ export const sendContactEmail = async (formData: {
         } else {
             return {
                 success: false,
-                message: 'Failed to send message. Please try again later.'
+                message: '🚀 Mission failed. Try Insta or LinkedIn'
             };
         }
     } catch (error) {
         console.error('EmailJS error:', error);
         return {
             success: false,
-            message: 'Failed to send message. Please try again later.'
+            message: '🚀 Mission failed. Try Insta or LinkedIn'
         };
     }
 };
